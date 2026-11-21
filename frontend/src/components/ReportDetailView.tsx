@@ -1,0 +1,854 @@
+import React, { useEffect, useState } from 'react';
+import type { FieldBankItem, ParameterBankItem, ReportDetail, Tag, User } from '../types';
+import { fieldBankApi, parameterBankApi, reportsApi, tagsApi } from '../api/client';
+import { FormulaBuilder } from './FormulaBuilder';
+import { useToast } from './Toast';
+import {
+  AlertCircle,
+  Calculator,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  Clock,
+  Copy,
+  Edit3,
+  ExternalLink,
+  FileSpreadsheet,
+  Filter,
+  Folder,
+  GitCompare,
+  Lock,
+  Plus,
+  Search,
+  Tag as TagIcon,
+  Trash2,
+  Unlock,
+} from 'lucide-react';
+
+interface ReportDetailViewProps {
+  report: ReportDetail | null;
+  currentUser: User | null;
+  onRefresh: () => void;
+  onCompareWith: (reportId: number) => void;
+  isLoading: boolean;
+  onReportDeleted?: () => void;
+  moduleTitle?: string;
+}
+
+export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
+  report,
+  currentUser,
+  onRefresh,
+  onCompareWith,
+  isLoading,
+  onReportDeleted,
+  moduleTitle,
+}) => {
+  const { showToast } = useToast();
+  const [actionLoading, setActionLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // حالت‌های ویرایش
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editFormula, setEditFormula] = useState('');
+  const [editFields, setEditFields] = useState<ReportDetail['fields']>([]);
+  const [editParams, setEditParams] = useState<ReportDetail['parameters']>([]);
+  const [editTags, setEditTags] = useState<Tag[]>([]);
+
+  // بانک‌های مرکزی جهت انتخاب
+  const [availableBankFields, setAvailableBankFields] = useState<FieldBankItem[]>([]);
+  const [selectedBankFieldId, setSelectedBankFieldId] = useState<number | ''>('');
+  const [availableBankParams, setAvailableBankParams] = useState<ParameterBankItem[]>([]);
+  const [selectedBankParamId, setSelectedBankParamId] = useState<number | ''>('');
+  const [allSystemTags, setAllSystemTags] = useState<Tag[]>([]);
+
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [copiedFormula, setCopiedFormula] = useState(false);
+  const [fieldFilterText, setFieldFilterText] = useState('');
+
+  // فیلدی که فرمول‌ساز آن در حال ویرایش است
+  const [formulaEditingFieldIndex, setFormulaEditingFieldIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (report) {
+      setEditTitle(report.title);
+      setEditDesc(report.functionalDescription || '');
+      setEditFormula(report.calculationFormula || '');
+      setEditFields(report.fields || []);
+      setEditParams(report.parameters || []);
+      setEditTags(report.tags || []);
+      setIsEditing(false);
+      setFormulaEditingFieldIndex(null);
+    }
+  }, [report]);
+
+  useEffect(() => {
+    if (isEditing) {
+      fieldBankApi.getAll().then(setAvailableBankFields);
+      parameterBankApi.getAll().then(setAvailableBankParams);
+      tagsApi.getAll().then(setAllSystemTags);
+    }
+  }, [isEditing]);
+
+  // پالس ضربان قلب (Heartbeat) برای تمدید قفل به صورت خودکار هر ۶۰ ثانیه
+  useEffect(() => {
+    if (!report || !currentSessionId || !currentUser) return;
+
+    const interval = setInterval(() => {
+      reportsApi.heartbeat(report.reportId, currentSessionId).catch(() => {
+        setCurrentSessionId(null);
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [report, currentSessionId, currentUser]);
+
+  const copyFormulaToClipboard = () => {
+    if (!report?.calculationFormula) return;
+    navigator.clipboard.writeText(report.calculationFormula);
+    setCopiedFormula(true);
+    showToast('فرمول محاسباتی در کلیپ‌بورد کپی شد.', 'info');
+    setTimeout(() => setCopiedFormula(false), 2000);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl animate-shimmer">
+        <div className="h-4 w-48 bg-slate-200 rounded-md"></div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <div className="h-5 w-24 bg-slate-200 rounded-md"></div>
+              <div className="h-7 w-72 bg-slate-200 rounded-md"></div>
+            </div>
+            <div className="h-9 w-32 bg-slate-200 rounded-xl"></div>
+          </div>
+        </div>
+        <div className="h-28 bg-white border border-slate-200 rounded-2xl"></div>
+        <div className="h-48 bg-white border border-slate-200 rounded-2xl"></div>
+      </div>
+    );
+  }
+
+  if (!report) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-400">
+        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3 text-slate-300">
+          <FileSpreadsheet className="w-8 h-8" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-600 mb-1">گزارشی انتخاب نشده است</h3>
+        <p className="text-xs text-slate-400">لطفاً برای مشاهده و بررسی، یک گزارش را از درختواره سمت راست انتخاب کنید.</p>
+      </div>
+    );
+  }
+
+  const isLockedByMe = report.isLocked && currentUser && report.lockedByUserId === currentUser.userId;
+  const isLockedByOther = report.isLocked && (!currentUser || report.lockedByUserId !== currentUser.userId);
+  const canEdit = currentUser && (currentUser.roleId === 2 || currentUser.roleId === 3);
+
+  const handleLock = async () => {
+    if (!currentUser) {
+      showToast('لطفاً ابتدا وارد سیستم شوید.', 'error');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await reportsApi.lock(report.reportId);
+      setCurrentSessionId(res.sessionId);
+      showToast('گزارش با موفقیت قفل و آماده کار شد.', 'success');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در تخصیص قفل', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    setActionLoading(true);
+    try {
+      await reportsApi.unlock(report.reportId, currentSessionId || undefined, currentUser?.roleId === 3);
+      setCurrentSessionId(null);
+      showToast('قفل گزارش آزاد شد.', 'info');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در آزادسازی قفل', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!window.confirm('آیا از تایید نهایی این گزارش اطمینان دارید؟ وضعیت به «تایید شده» تغییر خواهد یافت.')) return;
+    setActionLoading(true);
+    try {
+      await reportsApi.verify(report.reportId);
+      showToast('گزارش با موفقیت تایید نهایی شد.', 'success');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در تایید گزارش', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!window.confirm(`آیا از حذف کامل گزارش «${report.title}» (${report.reportCode}) اطمینان دارید؟`)) return;
+    setActionLoading(true);
+    try {
+      await reportsApi.delete(report.reportId);
+      showToast('گزارش با موفقیت حذف شد.', 'info');
+      if (onReportDeleted) onReportDeleted();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در حذف گزارش', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // افزودن فیلد از بانک فیلدها
+  const handleAddFieldToReport = () => {
+    if (!selectedBankFieldId) return;
+    const found = availableBankFields.find((f) => f.fieldId === Number(selectedBankFieldId));
+    if (!found) return;
+
+    if (editFields.some((f) => f.fieldId === found.fieldId)) {
+      showToast('این فیلد قبلاً به گزارش اضافه شده است.', 'error');
+      return;
+    }
+
+    setEditFields([
+      ...editFields,
+      {
+        fieldId: found.fieldId,
+        displayName: found.displayName,
+        technicalName: found.technicalName,
+        dataType: found.dataType,
+        displayOrder: editFields.length + 1,
+        customFormula: found.defaultFormula,
+        customNote: '',
+      },
+    ]);
+    setSelectedBankFieldId('');
+    showToast(`فیلد «${found.displayName}» افزوده شد.`, 'success');
+  };
+
+  const handleRemoveFieldFromReport = (fieldId: number) => {
+    setEditFields(editFields.filter((f) => f.fieldId !== fieldId));
+  };
+
+  // افزودن پارامتر از بانک پارامترها
+  const handleAddParamToReport = () => {
+    if (!selectedBankParamId) return;
+    const found = availableBankParams.find((p) => p.parameterBankId === Number(selectedBankParamId));
+    if (!found) return;
+
+    if (editParams.some((p) => p.parameterName.trim() === found.parameterName.trim())) {
+      showToast('این پارامتر قبلاً به گزارش افزوده شده است.', 'error');
+      return;
+    }
+
+    setEditParams([
+      ...editParams,
+      {
+        parameterId: Math.floor(Math.random() * -1000), // موقت تا ذخیره در دیتابیس
+        parameterName: found.parameterName,
+        dataType: found.dataType,
+        isRequired: found.defaultIsRequired,
+        description: found.description || '',
+      },
+    ]);
+    setSelectedBankParamId('');
+    showToast(`پارامتر «${found.parameterName}» افزوده شد.`, 'success');
+  };
+
+  const handleRemoveParamFromReport = (idx: number) => {
+    const updated = [...editParams];
+    updated.splice(idx, 1);
+    setEditParams(updated);
+  };
+
+  // تگ‌ها
+  const toggleTagInReport = (tag: Tag) => {
+    if (editTags.some((t) => t.tagId === tag.tagId)) {
+      setEditTags(editTags.filter((t) => t.tagId !== tag.tagId));
+    } else {
+      setEditTags([...editTags, tag]);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    setActionLoading(true);
+    try {
+      await reportsApi.update(report.reportId, {
+        title: editTitle,
+        functionalDescription: editDesc,
+        calculationFormula: editFormula,
+        fields: editFields,
+        parameters: editParams,
+        tags: editTags,
+      });
+      setIsEditing(false);
+      showToast('تغییرات گزارش با موفقیت ذخیره شد.', 'success');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در ذخیره تغییرات', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const filteredFields = (isEditing ? editFields : report.fields).filter((f) => {
+    if (!fieldFilterText.trim()) return true;
+    const term = fieldFilterText.toLowerCase();
+    return (
+      f.displayName.toLowerCase().includes(term) ||
+      (f.technicalName && f.technicalName.toLowerCase().includes(term)) ||
+      (f.customNote && f.customNote.toLowerCase().includes(term))
+    );
+  });
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 w-full max-w-7xl mx-auto">
+      {/* بردکرامب (Breadcrumb) */}
+      <nav aria-label="موقعیت در سامانه" className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+        <span className="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
+          <Folder className="w-3.5 h-3.5" />
+          <span>{moduleTitle || 'ماژول سیستم'}</span>
+        </span>
+        <ChevronLeft className="w-3 h-3 text-slate-300" />
+        <span className="font-bold text-slate-800">{report.title}</span>
+        <span className="font-mono text-[10px] bg-slate-200/70 text-slate-700 px-1.5 py-0.2 rounded">
+          {report.reportCode}
+        </span>
+      </nav>
+
+      {/* بنر وضعیت قفل */}
+      {isLockedByOther && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between text-rose-800 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs font-semibold">
+            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4 text-rose-600" />
+            </div>
+            <div>
+              <p className="font-bold text-rose-900">گزارش در حال بررسی است</p>
+              <p className="text-[11px] text-rose-700">این گزارش هم‌اکنون توسط «{report.lockedByUserName}» در حال کار است (حالت مشاهده).</p>
+            </div>
+          </div>
+          {currentUser?.roleId === 3 && (
+            <button
+              onClick={handleUnlock}
+              className="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-bold shadow-xs transition-colors shrink-0"
+            >
+              آزادسازی قفل (ادمین)
+            </button>
+          )}
+        </div>
+      )}
+
+      {isLockedByMe && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex items-center justify-between text-blue-900 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <Unlock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">قفل فعال: </span>
+              <span className="text-blue-700">این گزارش در اختیار شماست و ضربان قلب فعال است.</span>
+            </div>
+          </div>
+          <button
+            onClick={handleUnlock}
+            className="bg-white border border-blue-200 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl font-bold transition-colors"
+          >
+            آزادسازی قفل
+          </button>
+        </div>
+      )}
+
+      {/* هدر شناسنامه گزارش */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
+              {report.reportCode}
+            </span>
+
+            {report.status === 3 ? (
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> تایید شده
+              </span>
+            ) : report.status === 2 ? (
+              <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+                <Edit3 className="w-3.5 h-3.5 text-blue-600" /> در حال تکمیل
+              </span>
+            ) : (
+              <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+                <Clock className="w-3.5 h-3.5 text-amber-600" /> در انتظار بررسی
+              </span>
+            )}
+          </div>
+
+          {isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="text-lg font-bold text-slate-900 border border-blue-300 rounded-xl px-3 py-1.5 w-full focus:ring-2 focus:ring-blue-500"
+            />
+          ) : (
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{report.title}</h1>
+          )}
+
+          {report.verifiedByUserName && (
+            <p className="text-[11px] text-emerald-700 font-medium mt-1.5 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" />
+              <span>تایید شده توسط {report.verifiedByUserName}</span>
+            </p>
+          )}
+        </div>
+
+        {/* دکمه‌های عملیاتی هدر */}
+        <div className="flex items-center gap-2 shrink-0">
+          {!report.isLocked && (
+            <button
+              onClick={handleLock}
+              disabled={actionLoading}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all border border-slate-200 active:scale-95"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-600" />
+              <span>قفل‌گذاری و شروع کار</span>
+            </button>
+          )}
+
+          {canEdit && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="bg-white hover:bg-slate-50 text-slate-700 text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all border border-slate-200 active:scale-95"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>ویرایش</span>
+            </button>
+          )}
+
+          {canEdit && !isEditing && (
+            <button
+              onClick={handleDeleteReport}
+              disabled={actionLoading}
+              title="حذف این گزارش"
+              className="text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs p-2 rounded-xl transition-all active:scale-95"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {isEditing && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3.5 py-2 rounded-xl font-medium"
+              >
+                انصراف
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={actionLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-xs active:scale-95"
+              >
+                ذخیره تغییرات
+              </button>
+            </div>
+          )}
+
+          {report.status !== 3 && !isEditing && (
+            <button
+              onClick={handleVerify}
+              disabled={actionLoading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>تایید نهایی گزارش</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ۱. توضیحات کاربردی */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-blue-600" />
+          توضیحات کاربردی و سناریوی استفاده
+        </h3>
+        {isEditing ? (
+          <textarea
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            rows={3}
+            className="w-full text-xs text-slate-700 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 leading-relaxed"
+            placeholder="سناریوی کاربردی گزارش را وارد کنید..."
+          />
+        ) : (
+          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
+            {report.functionalDescription || 'توضیحات کاربردی برای این گزارش ثبت نشده است.'}
+          </p>
+        )}
+      </div>
+
+      {/* ۲. فرمول‌های محاسباتی با سازنده تعاملی عملگرها */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-indigo-600" />
+            فرمول‌های محاسباتی و منطق کلی گزارش
+          </h3>
+          {!isEditing && report.calculationFormula && (
+            <button
+              onClick={copyFormulaToClipboard}
+              className="text-[11px] text-slate-600 hover:text-blue-600 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              {copiedFormula ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedFormula ? 'کپی شد' : 'کپی فرمول'}</span>
+            </button>
+          )}
+        </div>
+
+        {isEditing ? (
+          <FormulaBuilder
+            formula={editFormula}
+            onChange={setEditFormula}
+            availableFields={editFields}
+            label="سازنده تعاملی فرمول کلی گزارش"
+            placeholder="با کلیک بر روی عملگرها و فیلدهای زیر، فرمول کلی گزارش را بسازید..."
+          />
+        ) : (
+          <div className="bg-slate-950 text-emerald-400 p-4 rounded-2xl font-mono text-xs leading-relaxed border border-slate-800 overflow-x-auto text-left shadow-inner" dir="ltr">
+            {report.calculationFormula || '// فرمول محاسباتی تعریف نشده است'}
+          </div>
+        )}
+      </div>
+
+      {/* ۳. فیلدهای خروجی (بانک مرکزی فیلدها) */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              فیلدهای خروجی گزارش (بانک مرکزی فیلدها)
+            </h3>
+            <span className="text-[11px] text-slate-500">
+              تعداد: {filteredFields.length} فیلد
+            </span>
+          </div>
+
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5" />
+            <input
+              type="text"
+              value={fieldFilterText}
+              onChange={(e) => setFieldFilterText(e.target.value)}
+              placeholder="فیلتر فیلدها..."
+              className="text-xs pr-8 pl-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* انتخاب فیلد جدید از بانک فیلدها در حالت ویرایش */}
+        {isEditing && (
+          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+            <select
+              value={selectedBankFieldId}
+              onChange={(e) => setSelectedBankFieldId(e.target.value ? Number(e.target.value) : '')}
+              className="flex-1 text-xs border border-slate-300 rounded-xl p-2 bg-white"
+            >
+              <option value="">انتخاب فیلد از بانک مرکزی فیلدها جهت اضافه کردن...</option>
+              {availableBankFields.map((bf) => (
+                <option key={bf.fieldId} value={bf.fieldId}>
+                  {bf.displayName} ({bf.technicalName || bf.dataType})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleAddFieldToReport}
+              disabled={!selectedBankFieldId}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>افزودن به گزارش</span>
+            </button>
+          </div>
+        )}
+
+        <div className="border border-slate-200 rounded-2xl overflow-hidden">
+          <table className="w-full text-right text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px]">
+                <th className="py-2.5 px-3 w-12 text-center">ردیف</th>
+                <th className="py-2.5 px-3">عنوان استاندارد</th>
+                <th className="py-2.5 px-3 font-mono">نام فنی/دیتابیسی</th>
+                <th className="py-2.5 px-2">نوع داده</th>
+                <th className="py-2.5 px-3">توضیح اختصاصی / فرمول خاص این فیلد</th>
+                {isEditing && <th className="py-2.5 px-2 text-center w-12">حذف</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredFields.map((field, idx) => (
+                <tr key={field.fieldId} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-2.5 px-3 font-mono text-slate-400 text-center">{field.displayOrder || idx + 1}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-800">{field.displayName}</td>
+                  <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{field.technicalName || '-'}</td>
+                  <td className="py-2.5 px-2">
+                    <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-mono border border-slate-200">
+                      {field.dataType}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                    {isEditing ? (
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          value={field.customNote || ''}
+                          onChange={(e) => {
+                            const updated = [...editFields];
+                            updated[idx] = { ...updated[idx], customNote: e.target.value };
+                            setEditFields(updated);
+                          }}
+                          placeholder="توضیح تفاوت یا یادداشت خاص..."
+                          className="w-full text-xs border border-slate-300 rounded-lg p-1.5"
+                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={field.customFormula || ''}
+                            onChange={(e) => {
+                              const updated = [...editFields];
+                              updated[idx] = { ...updated[idx], customFormula: e.target.value };
+                              setEditFields(updated);
+                            }}
+                            placeholder="فرمول اختصاصی این فیلد (اختیاری)..."
+                            className="flex-1 text-[11px] font-mono border border-slate-200 rounded-lg p-1 bg-slate-50"
+                            dir="ltr"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormulaEditingFieldIndex(formulaEditingFieldIndex === idx ? null : idx)}
+                            className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded font-bold"
+                          >
+                            عملگرها
+                          </button>
+                        </div>
+
+                        {/* فرمول‌ساز بازشونده برای فیلد مشخص */}
+                        {formulaEditingFieldIndex === idx && (
+                          <div className="pt-2">
+                            <FormulaBuilder
+                              formula={field.customFormula || ''}
+                              onChange={(val) => {
+                                const updated = [...editFields];
+                                updated[idx] = { ...updated[idx], customFormula: val };
+                                setEditFields(updated);
+                              }}
+                              availableFields={editFields.filter((_, i) => i !== idx)}
+                              label={`فرمول محاسباتی فیلد «${field.displayName}»`}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        {field.customNote && <p>{field.customNote}</p>}
+                        {field.customFormula && (
+                          <code className="text-[10px] text-indigo-700 font-mono block mt-0.5" dir="ltr">
+                            {field.customFormula}
+                          </code>
+                        )}
+                        {!field.customNote && !field.customFormula && '-'}
+                      </div>
+                    )}
+                  </td>
+                  {isEditing && (
+                    <td className="py-2.5 px-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFieldFromReport(field.fieldId)}
+                        className="text-slate-400 hover:text-rose-600 p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ۴. پارامترهای ورودی (متصل به بانک پارامترها) */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <Filter className="w-4 h-4 text-amber-600" />
+            پارامترهای ورودی گزارش (فیلترها)
+          </h3>
+          <span className="text-[11px] text-slate-500">
+            تعداد: {isEditing ? editParams.length : report.parameters.length} پارامتر
+          </span>
+        </div>
+
+        {/* انتخاب پارامتر از بانک پارامترها در حالت ویرایش */}
+        {isEditing && (
+          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-3">
+            <select
+              value={selectedBankParamId}
+              onChange={(e) => setSelectedBankParamId(e.target.value ? Number(e.target.value) : '')}
+              className="flex-1 text-xs border border-slate-300 rounded-xl p-2 bg-white"
+            >
+              <option value="">انتخاب پارامتر از مخزن مرکزی پارامترها...</option>
+              {availableBankParams.map((bp) => (
+                <option key={bp.parameterBankId} value={bp.parameterBankId}>
+                  {bp.parameterName} ({bp.dataType} - {bp.defaultIsRequired ? 'اجباری' : 'اختیاری'})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleAddParamToReport}
+              disabled={!selectedBankParamId}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>افزودن پارامتر</span>
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {(isEditing ? editParams : report.parameters).map((param, pIdx) => (
+            <div key={param.parameterId || pIdx} className="border border-slate-200 rounded-2xl p-3.5 bg-slate-50/70 space-y-1 relative group">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-xs text-slate-900">{param.parameterName}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  param.isRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {param.isRequired ? 'اجباری' : 'اختیاری'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-normal">{param.description || 'بدون توضیح'}</p>
+
+              {isEditing && (
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200/50 mt-2">
+                  <label className="flex items-center gap-1 text-[10px] text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={param.isRequired}
+                      onChange={(e) => {
+                        const updated = [...editParams];
+                        updated[pIdx] = { ...updated[pIdx], isRequired: e.target.checked };
+                        setEditParams(updated);
+                      }}
+                      className="rounded text-indigo-600"
+                    />
+                    <span>اجباری</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveParamFromReport(pIdx)}
+                    className="text-slate-400 hover:text-rose-600 p-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ۵. برچسب‌ها و گزارش‌های مرتبط */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* برچسب‌ها */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold text-slate-800 mb-2.5 flex items-center gap-2">
+            <TagIcon className="w-4 h-4 text-blue-500" />
+            برچسب‌های گزارش
+          </h3>
+
+          {isEditing ? (
+            <div className="space-y-2">
+              <p className="text-[11px] text-slate-500">برچسب‌های مدنظر را از بانک برچسب‌های سامانه انتخاب فرمایید:</p>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1">
+                {allSystemTags.map((tag) => {
+                  const isChecked = editTags.some((t) => t.tagId === tag.tagId);
+                  return (
+                    <button
+                      key={tag.tagId}
+                      type="button"
+                      onClick={() => toggleTagInReport(tag)}
+                      style={{
+                        backgroundColor: isChecked ? tag.colorHex : `${tag.colorHex}15`,
+                        color: isChecked ? '#fff' : tag.colorHex,
+                        borderColor: tag.colorHex,
+                      }}
+                      className={`text-xs font-bold px-3 py-1 rounded-xl border transition-all ${
+                        isChecked ? 'shadow-xs scale-105' : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      #{tag.tagName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {report.tags.length === 0 ? (
+                <p className="text-xs text-slate-400">برچسبی ثبت نشده است.</p>
+              ) : (
+                report.tags.map((tag) => (
+                  <span
+                    key={tag.tagId}
+                    style={{ backgroundColor: `${tag.colorHex}15`, color: tag.colorHex }}
+                    className="text-xs font-medium px-3 py-1 rounded-xl border border-current"
+                  >
+                    #{tag.tagName}
+                  </span>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* گزارش‌های مرتبط */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold text-slate-800 mb-2.5 flex items-center gap-2">
+            <GitCompare className="w-4 h-4 text-purple-600" />
+            گزارش‌های مشابه و مرتبط
+          </h3>
+          {report.relations.length === 0 ? (
+            <p className="text-xs text-slate-400">ارتباط یا تبارشناسی برای این گزارش ثبت نشده است.</p>
+          ) : (
+            <div className="space-y-2">
+              {report.relations.map((rel) => (
+                <div key={rel.relationId} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">{rel.targetTitle}</span>
+                    <span className="text-[10px] text-slate-400 font-mono mr-2">({rel.targetReportCode})</span>
+                  </div>
+                  <button
+                    onClick={() => onCompareWith(rel.targetReportId)}
+                    className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1 font-bold"
+                  >
+                    <span>مقایسه</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

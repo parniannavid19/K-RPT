@@ -1,0 +1,16 @@
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\bin\Debug\net9.0\KRpt.Infrastructure.deps.json
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\bin\Debug\net9.0\KRpt.Infrastructure.dll
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\bin\Debug\net9.0\KRpt.Infrastructure.pdb
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\bin\Debug\net9.0\KRpt.Core.dll
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\bin\Debug\net9.0\KRpt.Core.pdb
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.csproj.AssemblyReference.cache
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.AssemblyInfoInputs.cache
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.AssemblyInfo.cs
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.csproj.CoreCompileInputs.cache
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\EFCoreSqlServerHierarchyId.cs
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Inf.82D92EDD.Up2Date
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.dll
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\refint\KRpt.Infrastructure.dll
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.pdb
+D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\ref\KRpt.Infrastructure.dll

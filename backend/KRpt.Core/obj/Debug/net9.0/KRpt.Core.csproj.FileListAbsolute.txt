@@ -1,0 +1,13 @@
+D:\Ni Project\K-RPT\backend\KRpt.Core\bin\Debug\net9.0\KRpt.Core.deps.json
+D:\Ni Project\K-RPT\backend\KRpt.Core\bin\Debug\net9.0\KRpt.Core.dll
+D:\Ni Project\K-RPT\backend\KRpt.Core\bin\Debug\net9.0\KRpt.Core.pdb
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.csproj.AssemblyReference.cache
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.AssemblyInfoInputs.cache
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.AssemblyInfo.cs
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.csproj.CoreCompileInputs.cache
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\EFCoreSqlServerHierarchyId.cs
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.dll
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\refint\KRpt.Core.dll
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.pdb
+D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\ref\KRpt.Core.dll
