@@ -1,15 +1,77 @@
 @import "tailwindcss";
 
-body {
-  font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+@theme {
+  --font-sans: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "ss01" 1, "ss01" on;
+}
+
+html, body {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
   direction: rtl;
   text-align: right;
   background-color: #f8fafc;
   color: #1e293b;
 }
 
-code, pre, .font-mono {
-  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+/* کلیه المان‌های متنی، تیترها، فرم‌ها و جدول‌ها */
+h1, h2, h3, h4, h5, h6, p, span, a, label, li, td, th, div {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "ss01" 1, "ss01" on;
+}
+
+/* کلیه فیلدهای ورودی، دکمه‌ها و انتخاب‌گرها */
+input,
+button,
+select,
+textarea,
+optgroup,
+option {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
+}
+
+/* کلیه Placeholder ها در تمامی مرورگرها با فونت وزیر متن و اعداد فارسی */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
+}
+
+::-webkit-input-placeholder {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
+}
+
+::-moz-placeholder {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
+}
+
+:-ms-input-placeholder {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
+}
+
+/* کلیه اعداد، ارقام، کدها و مقادیر مونو اسپیس با فونت وزیر متن */
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+[class*="font-mono"],
+input[type="number"],
+.number {
+  font-family: 'Vazirmatn FD', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: "ss01" 1, "ss01" on !important;
 }
 
 /* Custom scrollbar for RTL */
