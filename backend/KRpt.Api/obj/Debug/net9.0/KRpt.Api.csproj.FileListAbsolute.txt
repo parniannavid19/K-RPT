@@ -105,3 +105,4 @@ D:\Ni Project\K-RPT\backend\KRpt.Api\obj\Debug\net9.0\ref\KRpt.Api.dll
 D:\Ni Project\K-RPT\backend\KRpt.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\Ni Project\K-RPT\backend\KRpt.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\Ni Project\K-RPT\backend\KRpt.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+d:\Ni Project\K-RPT\backend\KRpt.Api\obj\Debug\net9.0\KRpt.Api.sourcelink.json

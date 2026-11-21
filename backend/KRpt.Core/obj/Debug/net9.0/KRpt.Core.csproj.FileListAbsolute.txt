@@ -11,3 +11,4 @@ D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.dll
 D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\refint\KRpt.Core.dll
 D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.pdb
 D:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\ref\KRpt.Core.dll
+d:\Ni Project\K-RPT\backend\KRpt.Core\obj\Debug\net9.0\KRpt.Core.sourcelink.json

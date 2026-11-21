@@ -708,7 +708,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
               <option value="">انتخاب پارامتر از مخزن مرکزی پارامترها...</option>
               {availableBankParams.map((bp) => (
                 <option key={bp.parameterBankId} value={bp.parameterBankId}>
-                  {bp.parameterName} ({bp.dataType} - {bp.defaultIsRequired ? 'اجباری' : 'اختیاری'})
+                  {bp.parameterName} ({bp.defaultIsRequired ? 'اجباری' : 'اختیاری'})
                 </option>
               ))}
             </select>

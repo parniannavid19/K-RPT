@@ -14,3 +14,4 @@ D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastruc
 D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\refint\KRpt.Infrastructure.dll
 D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.pdb
 D:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\ref\KRpt.Infrastructure.dll
+d:\Ni Project\K-RPT\backend\KRpt.Infrastructure\obj\Debug\net9.0\KRpt.Infrastructure.sourcelink.json

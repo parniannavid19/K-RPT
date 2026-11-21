@@ -465,7 +465,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                 <h4 className="text-xs font-bold text-indigo-900">
                   {editingParamId ? 'ویرایش مشخصات پارامتر ورودی' : 'تعریف پارامتر ورودی جدید در مخزن مرکزی'}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">عنوان پارامتر</label>
                     <input
@@ -476,21 +476,6 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                       required
                       className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">نوع داده پارامتر</label>
-                    <select
-                      value={paramDataType}
-                      onChange={(e) => setParamDataType(e.target.value)}
-                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
-                    >
-                      <option value="NVARCHAR(50)">متنی کوتاه (NVARCHAR(50))</option>
-                      <option value="INT">شناسه/عددی (INT)</option>
-                      <option value="NVARCHAR(10)">تاریخ شمسی (NVARCHAR(10))</option>
-                      <option value="DECIMAL(18,2)">مبلغ یا عدد اعشاری</option>
-                      <option value="BIT">بولیین (BIT)</option>
-                    </select>
                   </div>
 
                   <div className="flex items-center pt-5">
@@ -546,7 +531,6 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500 text-[11px]">
                       <th className="py-2.5 px-3">عنوان پارامتر</th>
-                      <th className="py-2.5 px-2">نوع داده</th>
                       <th className="py-2.5 px-2 text-center">وضعیت اجباری بودن</th>
                       <th className="py-2.5 px-3">توضیحات راهنما</th>
                       {canManage && <th className="py-2.5 px-2 text-center w-20">عملیات</th>}
@@ -556,11 +540,6 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                     {params.map((p) => (
                       <tr key={p.parameterBankId} className="hover:bg-slate-50 transition-colors">
                         <td className="py-2.5 px-3 font-bold text-slate-800">{p.parameterName}</td>
-                        <td className="py-2.5 px-2">
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-mono">
-                            {p.dataType}
-                          </span>
-                        </td>
                         <td className="py-2.5 px-2 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             p.defaultIsRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
