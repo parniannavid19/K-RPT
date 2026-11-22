@@ -53,6 +53,7 @@ public class ReportsController : ControllerBase
             Title = report.Title,
             FunctionalDescription = report.FunctionalDescription,
             CalculationFormula = report.CalculationFormula,
+            SqlQuery = report.SqlQuery,
             Status = report.Status,
             VerifiedByUserId = report.VerifiedByUserId,
             VerifiedByUserName = report.VerifiedByUser?.FullName,
@@ -218,6 +219,7 @@ public class ReportsController : ControllerBase
             report.Title = dto.Title;
             report.FunctionalDescription = dto.FunctionalDescription;
             report.CalculationFormula = dto.CalculationFormula;
+            report.SqlQuery = dto.SqlQuery?.Trim();
             report.Status = ReportStatus.InProgress;
             report.UpdatedAt = DateTime.UtcNow;
 

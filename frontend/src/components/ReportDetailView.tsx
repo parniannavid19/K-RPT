@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronUp,
   Clock,
+  Copy,
   Edit3,
   ExternalLink,
   FileSpreadsheet,
@@ -22,7 +23,9 @@ import {
   Lock,
   Plus,
   Search,
+  Sparkles,
   Tag as TagIcon,
+  Terminal,
   Trash2,
   Unlock,
 } from 'lucide-react';
@@ -56,6 +59,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   // حالت‌های ویرایش
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editSqlQuery, setEditSqlQuery] = useState('');
+  const [copiedQuery, setCopiedQuery] = useState(false);
   const [editFields, setEditFields] = useState<ReportDetail['fields']>([]);
   const [editParams, setEditParams] = useState<ReportDetail['parameters']>([]);
   const [editTags, setEditTags] = useState<Tag[]>([]);
@@ -96,6 +101,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
 
       setEditTitle(report.title);
       setEditDesc(report.functionalDescription || '');
+      setEditSqlQuery(report.sqlQuery || '');
 
       if (isDifferentReport || !isEditing) {
         setEditFields(report.fields || []);
@@ -395,12 +401,48 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     }
   };
 
+  // کپی کوئری گزارش در کلیپ‌بورد
+  const copyQueryToClipboard = (textToCopy?: string) => {
+    const text = textToCopy !== undefined ? textToCopy : (isEditing ? editSqlQuery : report?.sqlQuery);
+    if (!text || !text.trim()) {
+      showToast('کوئری برای کپی وجود ندارد.', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(text);
+    setCopiedQuery(true);
+    showToast('کوئری گزارش با موفقیت در کلیپ‌بورد کپی شد.', 'info');
+    setTimeout(() => setCopiedQuery(false), 2000);
+  };
+
+  // تولید خودکار ساختار اسکریپت کوئری استاندارد بر اساس فیلدها و شروط گزارش
+  const generateDefaultQuery = (): string => {
+    const currentFields = isEditing ? editFields : report?.fields || [];
+    const currentParams = isEditing ? editParams : report?.parameters || [];
+    const repTitle = isEditing ? editTitle : report?.title || '';
+    const repCode = report?.reportCode || '';
+
+    const cols = currentFields.map((f) => {
+      const colName = f.technicalName ? `[${f.technicalName}]` : `[${f.displayName.replace(/\s+/g, '_')}]`;
+      return `    ${colName} AS [${f.displayName}]`;
+    });
+    const colsStr = cols.length > 0 ? cols.join(',\n') : '    *';
+
+    const whereClauses = currentParams.map((p) => {
+      const paramName = p.parameterName.replace(/\s+/g, '_');
+      return `    -- فیلتر: ${p.parameterName} (${p.isRequired ? 'اجباری' : 'اختیاری'})\n    AND (@${paramName} IS NULL OR [ستون_${paramName}] = @${paramName})`;
+    });
+    const whereStr = whereClauses.length > 0 ? '\n' + whereClauses.join('\n') : '';
+
+    return `-- =============================================\n-- عنوان گزارش: ${repTitle}\n-- کد یکتا: ${repCode}\n-- استخراج‌شده از کاتالوگ گزارش‌ها (K-RPT)\n-- =============================================\nSELECT\n${colsStr}\nFROM [نام_جدول_یا_ویو]\nWHERE 1 = 1${whereStr};`;
+  };
+
   const handleSaveEdit = async () => {
     setActionLoading(true);
     try {
       await reportsApi.update(report.reportId, {
         title: editTitle,
         functionalDescription: editDesc,
+        sqlQuery: editSqlQuery,
         fields: editFields,
         parameters: editParams,
         tags: editTags,
@@ -615,7 +657,90 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         )}
       </div>
 
-      {/* ۲. فیلدهای خروجی گزارش (بانک مرکزی فیلدها) */}
+      {/* ۲. کوئری و اسکریپت استخراج داده‌های گزارش (SQL Query) با قابلیت کپی در کلیپ‌بورد */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center shadow-xs">
+              <Terminal className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                کوئری و اسکریپت دیتابیس گزارش (SQL Query)
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                {isEditing
+                  ? 'کوئری استخراج گزارش را وارد کرده یا جهت استفاده در محیط پایگاه داده در کلیپ‌بورد کپی فرمایید.'
+                  : 'اسکریپت و کدهای SQL استخراج داده‌های این گزارش'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  const q = generateDefaultQuery();
+                  setEditSqlQuery(q);
+                  showToast('کوئری نمونه بر اساس فیلدها و شروط گزارش تولید شد.', 'info');
+                }}
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-indigo-200 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>تولید خودکار کوئری نمونه</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                const targetText = isEditing ? (editSqlQuery || generateDefaultQuery()) : (report.sqlQuery || generateDefaultQuery());
+                copyQueryToClipboard(targetText);
+              }}
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer ${
+                copiedQuery
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-900 hover:bg-slate-800 text-white'
+              }`}
+            >
+              {copiedQuery ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedQuery ? 'کپی شد!' : 'کپی کوئری در کلیپ‌بورد'}</span>
+            </button>
+          </div>
+        </div>
+
+        {isEditing ? (
+          <div className="relative">
+            <textarea
+              value={editSqlQuery}
+              onChange={(e) => setEditSqlQuery(e.target.value)}
+              rows={7}
+              className="w-full text-xs font-mono text-emerald-400 bg-slate-950 border border-slate-800 rounded-2xl p-4 focus:outline-hidden focus:ring-2 focus:ring-blue-500 leading-relaxed shadow-inner select-all"
+              placeholder="-- کوئری یا اسکریپت استخراج گزارش را اینجا وارد نمایید (یا از دکمه «تولید خودکار کوئری نمونه» استفاده فرمایید)..."
+              dir="ltr"
+            />
+          </div>
+        ) : report.sqlQuery ? (
+          <div className="bg-slate-950 text-emerald-400 p-4 rounded-2xl font-mono text-xs leading-relaxed border border-slate-800 overflow-x-auto text-left shadow-inner select-all" dir="ltr">
+            <pre className="whitespace-pre-wrap">{report.sqlQuery}</pre>
+          </div>
+        ) : (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span>اسکریپت SQL اختصاصی برای این گزارش ثبت نشده است (در حالت ویرایش می‌توانید کوئری را وارد یا تولید فرمایید).</span>
+            <button
+              type="button"
+              onClick={() => copyQueryToClipboard(generateDefaultQuery())}
+              className="text-xs bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 font-bold shadow-2xs shrink-0 cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5 text-blue-600" />
+              <span>کپی قالب کوئری استاندارد این گزارش</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ۳. فیلدهای خروجی گزارش (بانک مرکزی فیلدها) */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div className="flex flex-wrap justify-between items-center gap-2">
           <div>
@@ -827,7 +952,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         </div>
       </div>
 
-      {/* ۳. پیش‌نمایش و خروجی شبیه‌سازی‌شده گزارش (با تفکیک رنگ ستون‌های فرمول‌دار) */}
+      {/* ۴. پیش‌نمایش و خروجی شبیه‌سازی‌شده گزارش (با تفکیک رنگ ستون‌های فرمول‌دار) */}
       <MockReportPreview
         reportTitle={isEditing ? editTitle : report.title}
         reportCode={report.reportCode}
@@ -836,7 +961,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         onOpenFieldManager={() => setIsEditing(true)}
       />
 
-      {/* ۴. پارامترهای ورودی (متصل به بانک پارامترها) */}
+      {/* ۵. پارامترهای ورودی (متصل به بانک پارامترها) */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -917,7 +1042,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         </div>
       </div>
 
-      {/* ۵. برچسب‌ها و گزارش‌های مرتبط */}
+      {/* ۶. برچسب‌ها و گزارش‌های مرتبط */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* برچسب‌ها */}
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">

@@ -142,6 +142,7 @@ export const reportsApi = {
       title: data.title,
       functionalDescription: data.functionalDescription,
       calculationFormula: data.calculationFormula,
+      sqlQuery: data.sqlQuery,
       fields: data.fields,
       parameters: data.parameters,
       tagIds: data.tags?.map((t) => t.tagId) || [],

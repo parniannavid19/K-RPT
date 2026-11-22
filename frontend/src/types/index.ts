@@ -92,6 +92,7 @@ export interface ReportDetail {
   title: string;
   functionalDescription?: string;
   calculationFormula?: string;
+  sqlQuery?: string;
   status: ReportStatus;
   verifiedByUserId?: number;
   verifiedByUserName?: string;

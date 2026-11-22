@@ -68,6 +68,7 @@ public class CreateTreeNodeDto
     public string? ReportCode { get; set; }
     public string? FunctionalDescription { get; set; }
     public string? CalculationFormula { get; set; }
+    public string? SqlQuery { get; set; }
 }
 
 public class SwapNodesDto
@@ -147,6 +148,7 @@ public class ReportDetailDto
     public string Title { get; set; } = string.Empty;
     public string? FunctionalDescription { get; set; }
     public string? CalculationFormula { get; set; }
+    public string? SqlQuery { get; set; }
     public ReportStatus Status { get; set; }
     public int? VerifiedByUserId { get; set; }
     public string? VerifiedByUserName { get; set; }
@@ -169,6 +171,7 @@ public class UpdateReportDto
     public string Title { get; set; } = string.Empty;
     public string? FunctionalDescription { get; set; }
     public string? CalculationFormula { get; set; }
+    public string? SqlQuery { get; set; }
     public List<ReportFieldItemDto> Fields { get; set; } = new();
     public List<ReportParameterItemDto> Parameters { get; set; } = new();
     public List<int> TagIds { get; set; } = new();

@@ -89,6 +89,7 @@ public class Report
     
     public string? FunctionalDescription { get; set; }
     public string? CalculationFormula { get; set; }
+    public string? SqlQuery { get; set; }
     
     public ReportStatus Status { get; set; } = ReportStatus.Pending;
     

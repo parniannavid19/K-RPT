@@ -223,6 +223,7 @@ public class DiffController : ControllerBase
             Title = r.Title,
             FunctionalDescription = r.FunctionalDescription,
             CalculationFormula = r.CalculationFormula,
+            SqlQuery = r.SqlQuery,
             Status = r.Status,
             Fields = r.ReportFields.Select(rf => new ReportFieldItemDto
             {
