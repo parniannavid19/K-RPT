@@ -70,10 +70,8 @@ public class ReportsController : ControllerBase
                     FieldId = rf.FieldId,
                     DisplayName = rf.Field?.DisplayName ?? string.Empty,
                     TechnicalName = rf.Field?.TechnicalName,
-                    DataType = rf.Field?.DataType ?? string.Empty,
                     DisplayOrder = rf.DisplayOrder,
                     CustomFormula = rf.CustomFormula,
-                    DefaultFormula = rf.Field?.DefaultFormula,
                     CustomNote = rf.CustomNote
                 }).ToList(),
             Parameters = report.Parameters
@@ -111,22 +109,29 @@ public class ReportsController : ControllerBase
     [HttpPost("{id}/lock")]
     public async Task<IActionResult> AcquireLock(int id)
     {
-        int userId = GetCurrentUserId();
-        var (success, message, sessionId) = await _lockService.AcquireLockAsync(id, userId);
-
-        if (!success)
-            return Conflict(new { message });
-
-        var user = await _context.Users.FindAsync(userId);
-        await _hubContext.Clients.All.SendAsync("ReportLockChanged", new
+        try
         {
-            reportId = id,
-            isLocked = true,
-            lockedByUserName = user?.FullName,
-            sessionId
-        });
+            int userId = GetCurrentUserId();
+            var (success, message, sessionId) = await _lockService.AcquireLockAsync(id, userId);
 
-        return Ok(new { success = true, sessionId, message });
+            if (!success)
+                return Conflict(new { message });
+
+            var user = await _context.Users.FindAsync(userId);
+            await _hubContext.Clients.All.SendAsync("ReportLockChanged", new
+            {
+                reportId = id,
+                isLocked = true,
+                lockedByUserName = user?.FullName,
+                sessionId
+            });
+
+            return Ok(new { success = true, sessionId, message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"خطا در تخصیص قفل در سرور: {ex.Message}" });
+        }
     }
 
     [Authorize]
@@ -193,66 +198,79 @@ public class ReportsController : ControllerBase
         return Ok(new { success = true, message = "گزارش با موفقیت تایید شد." });
     }
 
-    [Authorize(Roles = "Manager,SystemAdmin")]
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportDto dto)
     {
-        int userId = GetCurrentUserId();
-        var report = await _context.Reports
-            .Include(r => r.ReportFields)
-            .Include(r => r.Parameters)
-            .Include(r => r.ReportTags)
-            .FirstOrDefaultAsync(r => r.ReportId == id);
-
-        if (report == null)
-            return NotFound();
-
-        // به‌روزرسانی مشخصات پایه
-        report.Title = dto.Title;
-        report.FunctionalDescription = dto.FunctionalDescription;
-        report.CalculationFormula = dto.CalculationFormula;
-        report.Status = ReportStatus.InProgress;
-        report.UpdatedAt = DateTime.UtcNow;
-
-        // به‌روزرسانی فیلدها
-        _context.ReportFields.RemoveRange(report.ReportFields);
-        int order = 1;
-        foreach (var f in dto.Fields)
+        try
         {
-            report.ReportFields.Add(new ReportField
-            {
-                FieldId = f.FieldId,
-                DisplayOrder = f.DisplayOrder > 0 ? f.DisplayOrder : order++,
-                CustomFormula = f.CustomFormula,
-                CustomNote = f.CustomNote
-            });
-        }
+            int userId = GetCurrentUserId();
+            var report = await _context.Reports
+                .Include(r => r.ReportFields)
+                .Include(r => r.Parameters)
+                .Include(r => r.ReportTags)
+                .FirstOrDefaultAsync(r => r.ReportId == id);
 
-        // به‌روزرسانی پارامترها
-        _context.ReportParameters.RemoveRange(report.Parameters);
-        foreach (var p in dto.Parameters)
+            if (report == null)
+                return NotFound(new { message = "گزارش مورد نظر یافت نشد." });
+
+            // به‌روزرسانی مشخصات پایه
+            report.Title = dto.Title;
+            report.FunctionalDescription = dto.FunctionalDescription;
+            report.CalculationFormula = dto.CalculationFormula;
+            report.Status = ReportStatus.InProgress;
+            report.UpdatedAt = DateTime.UtcNow;
+
+            // به‌روزرسانی فیلدها با حذف موارد تکراری بر اساس FieldId جهت جلوگیری از خطای کلید یکتا
+            _context.ReportFields.RemoveRange(report.ReportFields);
+            int order = 1;
+            var uniqueFields = (dto.Fields ?? new List<ReportFieldItemDto>())
+                .GroupBy(f => f.FieldId)
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var f in uniqueFields)
+            {
+                report.ReportFields.Add(new ReportField
+                {
+                    FieldId = f.FieldId,
+                    DisplayOrder = order++,
+                    CustomFormula = f.CustomFormula,
+                    CustomNote = f.CustomNote
+                });
+            }
+
+            // به‌روزرسانی پارامترها با اعتبارسنجی نوع داده پیش‌فرض
+            _context.ReportParameters.RemoveRange(report.Parameters);
+            foreach (var p in dto.Parameters ?? new List<ReportParameterItemDto>())
+            {
+                if (string.IsNullOrWhiteSpace(p.ParameterName)) continue;
+                report.Parameters.Add(new ReportParameter
+                {
+                    ParameterName = p.ParameterName,
+                    DataType = string.IsNullOrWhiteSpace(p.DataType) ? "NVARCHAR" : p.DataType,
+                    IsRequired = p.IsRequired,
+                    Description = p.Description
+                });
+            }
+
+            // به‌روزرسانی تگ‌ها
+            _context.ReportTags.RemoveRange(report.ReportTags);
+            foreach (var tagId in dto.TagIds ?? new List<int>())
+            {
+                report.ReportTags.Add(new ReportTag
+                {
+                    TagId = tagId
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "تغییرات گزارش با موفقیت ثبت شد." });
+        }
+        catch (Exception ex)
         {
-            report.Parameters.Add(new ReportParameter
-            {
-                ParameterName = p.ParameterName,
-                DataType = p.DataType,
-                IsRequired = p.IsRequired,
-                Description = p.Description
-            });
+            return StatusCode(500, new { message = $"خطا در ثبت تغییرات در پایگاه داده: {ex.Message}" });
         }
-
-        // به‌روزرسانی تگ‌ها
-        _context.ReportTags.RemoveRange(report.ReportTags);
-        foreach (var tagId in dto.TagIds)
-        {
-            report.ReportTags.Add(new ReportTag
-            {
-                TagId = tagId
-            });
-        }
-
-        await _context.SaveChangesAsync();
-        return Ok(new { success = true, message = "تغییرات گزارش با موفقیت ثبت شد." });
     }
 
     [Authorize(Roles = "Manager,SystemAdmin")]

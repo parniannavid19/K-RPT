@@ -25,15 +25,18 @@ function MainApp() {
   const [compareReportA, setCompareReportA] = useState<number | null>(null);
   const [compareReportB, setCompareReportB] = useState<number | null>(null);
 
-  // بارگذاری کاربر از حافظه مرورگر
+  // بارگذاری کاربر از حافظه مرورگر و تضمین اعتبار نشست
   useEffect(() => {
     const user = authApi.getCurrentUser();
-    if (user) {
+    const token = localStorage.getItem('krpt_token');
+    if (user && token) {
       setCurrentUser(user);
     } else {
       authApi.login('admin', 'admin123').then((res) => {
         setCurrentUser(res.user);
-      }).catch(() => {});
+      }).catch((err) => {
+        console.error('ورود خودکار ناموفق:', err);
+      });
     }
   }, []);
 
@@ -89,6 +92,18 @@ function MainApp() {
       loadReport(selectedReportId);
     }
   }, [selectedReportId]);
+
+  // بستن سراسری کلیه پنجره‌های شناور با دکمه Esc
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFieldBankOpen) setIsFieldBankOpen(false);
+        if (isAdminSettingsOpen) setIsAdminSettingsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isFieldBankOpen, isAdminSettingsOpen]);
 
   // اتصال به SignalR برای همگام‌سازی لحظه‌ای
   useEffect(() => {

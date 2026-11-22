@@ -56,6 +56,18 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
   const [confirmText, setConfirmText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
 
+  // بستن پنجره با دکمه Esc
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const presetColors = [
     '#EF4444', '#F97316', '#F59E0B', '#10B981',
     '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',

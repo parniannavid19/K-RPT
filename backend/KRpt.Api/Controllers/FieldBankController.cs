@@ -35,9 +35,7 @@ public class FieldBankController : ControllerBase
                 FieldId = f.FieldId,
                 DisplayName = f.DisplayName,
                 TechnicalName = f.TechnicalName,
-                DataType = f.DataType,
-                StandardDescription = f.StandardDescription,
-                DefaultFormula = f.DefaultFormula
+                StandardDescription = f.StandardDescription
             })
             .ToListAsync();
 
@@ -54,9 +52,7 @@ public class FieldBankController : ControllerBase
         {
             DisplayName = dto.DisplayName.Trim(),
             TechnicalName = dto.TechnicalName?.Trim(),
-            DataType = string.IsNullOrWhiteSpace(dto.DataType) ? "NVARCHAR(50)" : dto.DataType.Trim(),
             StandardDescription = dto.StandardDescription?.Trim(),
-            DefaultFormula = dto.DefaultFormula?.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -79,9 +75,7 @@ public class FieldBankController : ControllerBase
 
         field.DisplayName = dto.DisplayName.Trim();
         field.TechnicalName = dto.TechnicalName?.Trim();
-        field.DataType = string.IsNullOrWhiteSpace(dto.DataType) ? field.DataType : dto.DataType.Trim();
         field.StandardDescription = dto.StandardDescription?.Trim();
-        field.DefaultFormula = dto.DefaultFormula?.Trim();
 
         await _context.SaveChangesAsync();
         return Ok(new { success = true, message = "فیلد با موفقیت ویرایش شد." });

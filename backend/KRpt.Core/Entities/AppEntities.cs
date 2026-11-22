@@ -126,13 +126,9 @@ public class FieldBank
     [MaxLength(150)]
     public string? TechnicalName { get; set; }
     
-    [Required, MaxLength(50)]
-    public string DataType { get; set; } = "NVARCHAR(50)";
-    
     [MaxLength(1000)]
     public string? StandardDescription { get; set; }
     
-    public string? DefaultFormula { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public ICollection<ReportField> ReportFields { get; set; } = new List<ReportField>();

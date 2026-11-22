@@ -16,6 +16,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// بازنشانی و احراز هویت خودکار در صورت انقضای توکن یا خطای ۴۰۱
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const res = await axios.post('/api/auth/login', { username: 'admin', password: 'admin123' });
+        if (res.data?.token) {
+          localStorage.setItem('krpt_token', res.data.token);
+          localStorage.setItem('krpt_user', JSON.stringify(res.data));
+          originalRequest.headers.Authorization = `Bearer ${res.data.token}`;
+          return api(originalRequest);
+        }
+      } catch (loginErr) {
+        console.error('خطا در احراز هویت خودکار:', loginErr);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authApi = {
   login: async (username: string, password: string): Promise<{ token: string; user: User }> => {
     const res = await api.post('/auth/login', { username, password });

@@ -25,6 +25,16 @@ export const Header: React.FC<HeaderProps> = ({
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
 
+  // بستن پنجره لاگین با دکمه Esc
+  React.useEffect(() => {
+    if (!showLoginModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowLoginModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLoginModal]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {

@@ -83,9 +83,7 @@ public class FieldBankDto
     public int FieldId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string? TechnicalName { get; set; }
-    public string DataType { get; set; } = string.Empty;
     public string? StandardDescription { get; set; }
-    public string? DefaultFormula { get; set; }
 }
 
 public class ParameterBankDto
@@ -108,7 +106,7 @@ public class ReportFieldItemDto
     public int FieldId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string? TechnicalName { get; set; }
-    public string DataType { get; set; } = string.Empty;
+    public string? DataType { get; set; }
     public int DisplayOrder { get; set; }
     public string? CustomFormula { get; set; }
     public string? DefaultFormula { get; set; }

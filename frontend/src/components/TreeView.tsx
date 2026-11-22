@@ -123,6 +123,18 @@ export const TreeView: React.FC<TreeViewProps> = ({
   const [swapPositions, setSwapPositions] = useState(true);
   const [swapSubmitting, setSwapSubmitting] = useState(false);
 
+  // بستن پنجره‌های مودال ایجاد و ویرایش/سواپ با کلید Esc
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showAddModal) setShowAddModal(false);
+        if (showEditModal) setShowEditModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal, showEditModal]);
+
   // عرض سایدبار درختی و قابلیت تغییر اندازه پویا برای مشاهده کامل عناوین
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('k_rpt_tree_width');

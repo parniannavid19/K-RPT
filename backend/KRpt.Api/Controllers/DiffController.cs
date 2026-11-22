@@ -113,7 +113,6 @@ public class DiffController : ControllerBase
                 FieldId = rf.FieldId,
                 DisplayName = rf.Field?.DisplayName ?? string.Empty,
                 TechnicalName = rf.Field?.TechnicalName,
-                DataType = rf.Field?.DataType ?? string.Empty,
                 DisplayOrder = rf.DisplayOrder,
                 CustomFormula = rf.CustomFormula,
                 CustomNote = rf.CustomNote

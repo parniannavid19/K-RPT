@@ -25,9 +25,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
   const [editingFieldId, setEditingFieldId] = useState<number | null>(null);
   const [fieldDisplayName, setFieldDisplayName] = useState('');
   const [fieldTechName, setFieldTechName] = useState('');
-  const [fieldDataType, setFieldDataType] = useState('NVARCHAR(50)');
   const [fieldDesc, setFieldDesc] = useState('');
-  const [fieldDefaultFormula, setFieldDefaultFormula] = useState('');
 
   // متغیرهای پارامترها
   const [params, setParams] = useState<ParameterBankItem[]>([]);
@@ -41,6 +39,18 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
 
   const [loading, setLoading] = useState(false);
   const canManage = currentUser && (currentUser.roleId === 2 || currentUser.roleId === 3);
+
+  // بستن پنجره با دکمه Esc
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -77,9 +87,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
     setEditingFieldId(null);
     setFieldDisplayName('');
     setFieldTechName('');
-    setFieldDataType('NVARCHAR(50)');
     setFieldDesc('');
-    setFieldDefaultFormula('');
     setShowFieldForm(true);
   };
 
@@ -87,9 +95,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
     setEditingFieldId(field.fieldId);
     setFieldDisplayName(field.displayName);
     setFieldTechName(field.technicalName || '');
-    setFieldDataType(field.dataType || 'NVARCHAR(50)');
     setFieldDesc(field.standardDescription || '');
-    setFieldDefaultFormula(field.defaultFormula || '');
     setShowFieldForm(true);
   };
 
@@ -102,18 +108,14 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
         await fieldBankApi.update(editingFieldId, {
           displayName: fieldDisplayName.trim(),
           technicalName: fieldTechName.trim(),
-          dataType: fieldDataType.trim(),
           standardDescription: fieldDesc.trim(),
-          defaultFormula: fieldDefaultFormula.trim(),
         });
         showToast('مشخصات فیلد با موفقیت ویرایش شد.', 'success');
       } else {
         await fieldBankApi.create({
           displayName: fieldDisplayName.trim(),
           technicalName: fieldTechName.trim(),
-          dataType: fieldDataType.trim(),
           standardDescription: fieldDesc.trim(),
-          defaultFormula: fieldDefaultFormula.trim(),
         });
         showToast('فیلد استاندارد جدید با موفقیت ثبت شد.', 'success');
       }
@@ -290,7 +292,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                 <h4 className="text-xs font-bold text-blue-900">
                   {editingFieldId ? 'ویرایش مشخصات فیلد استاندارد' : 'تعریف فیلد استاندارد جدید'}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">عنوان استاندارد فارسی</label>
                     <input
@@ -312,45 +314,17 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                       className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white font-mono"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">نوع داده</label>
-                    <select
-                      value={fieldDataType}
-                      onChange={(e) => setFieldDataType(e.target.value)}
-                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
-                    >
-                      <option value="NVARCHAR(50)">متنی کوتاه (NVARCHAR(50))</option>
-                      <option value="NVARCHAR(250)">متنی بلند (NVARCHAR(250))</option>
-                      <option value="INT">عدد صحیح (INT)</option>
-                      <option value="DECIMAL(18,2)">مبلغ یا ریالی (DECIMAL(18,2))</option>
-                      <option value="DECIMAL(18,3)">تعدادی/وزنی (DECIMAL(18,3))</option>
-                      <option value="NVARCHAR(10)">تاریخ شمسی (NVARCHAR(10))</option>
-                      <option value="BIT">بولیین/وضعیت (BIT)</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">شرح استاندارد کاربرد</label>
-                    <input
-                      type="text"
-                      placeholder="تعریف و کاربرد استاندارد این فیلد در سیستم..."
-                      value={fieldDesc}
-                      onChange={(e) => setFieldDesc(e.target.value)}
-                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">فرمول محاسباتی پیش‌فرض (اختیاری)</label>
-                    <input
-                      type="text"
-                      placeholder="مثال: @مبلغ_کل * 0.10"
-                      value={fieldDefaultFormula}
-                      onChange={(e) => setFieldDefaultFormula(e.target.value)}
-                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white font-mono"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">شرح استاندارد کاربرد</label>
+                  <input
+                    type="text"
+                    placeholder="تعریف و کاربرد استاندارد این فیلد در سیستم..."
+                    value={fieldDesc}
+                    onChange={(e) => setFieldDesc(e.target.value)}
+                    className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
@@ -383,7 +357,6 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                     <tr className="border-b border-slate-200 text-slate-500 text-[11px]">
                       <th className="py-2.5 px-3">عنوان استاندارد</th>
                       <th className="py-2.5 px-3 font-mono">نام فنی/دیتابیسی</th>
-                      <th className="py-2.5 px-2">نوع داده</th>
                       <th className="py-2.5 px-3">شرح استاندارد</th>
                       {canManage && <th className="py-2.5 px-2 text-center w-20">عملیات</th>}
                     </tr>
@@ -393,13 +366,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                       <tr key={f.fieldId} className="hover:bg-slate-50 transition-colors">
                         <td className="py-2.5 px-3 font-bold text-slate-800">{f.displayName}</td>
                         <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{f.technicalName || '-'}</td>
-                        <td className="py-2.5 px-2">
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-mono">
-                            {f.dataType}
-                          </span>
-                        </td>
                         <td className="py-2.5 px-3 text-slate-600 text-[11px]">
-                          {f.standardDescription || f.defaultFormula || '-'}
+                          {f.standardDescription || '-'}
                         </td>
                         {canManage && (
                           <td className="py-2.5 px-2 text-center">

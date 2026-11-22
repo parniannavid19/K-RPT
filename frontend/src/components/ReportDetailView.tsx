@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import type { FieldBankItem, ParameterBankItem, ReportDetail, Tag, User } from '../types';
 import { fieldBankApi, parameterBankApi, reportsApi, tagsApi } from '../api/client';
 import { FormulaBuilder } from './FormulaBuilder';
+import { MockReportPreview } from './MockReportPreview';
 import { useToast } from './Toast';
 import {
   AlertCircle,
   Calculator,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   Clock,
   Copy,
   Edit3,
@@ -17,6 +20,7 @@ import {
   Filter,
   Folder,
   GitCompare,
+  GripVertical,
   Lock,
   Plus,
   Search,
@@ -69,6 +73,18 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
 
   // فیلدی که فرمول‌ساز آن در حال ویرایش است
   const [formulaEditingFieldIndex, setFormulaEditingFieldIndex] = useState<number | null>(null);
+  // ایندکس فیلد در حال کشیدن با ماوس (Drag & Drop)
+  const [draggedFieldIndex, setDraggedFieldIndex] = useState<number | null>(null);
+
+  // بستن ابزار فرمول‌ساز با کلید Esc
+  useEffect(() => {
+    if (formulaEditingFieldIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFormulaEditingFieldIndex(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [formulaEditingFieldIndex]);
 
   useEffect(() => {
     if (report) {
@@ -159,7 +175,11 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       showToast('گزارش با موفقیت قفل و آماده کار شد.', 'success');
       onRefresh();
     } catch (err: any) {
-      showToast(err.response?.data?.message || 'خطا در تخصیص قفل', 'error');
+      const msg = err.response?.data?.message || 
+        (err.response?.status === 401 ? 'نشست کاربری منقضی شده بود؛ لطفاً مجدداً دکمه قفل را بزنید.' : '') ||
+        (err.response?.status === 403 ? 'دسترسی مجاز برای قفل‌گذاری این گزارش وجود ندارد.' : '') ||
+        'خطا در تخصیص قفل';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
@@ -224,9 +244,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         fieldId: found.fieldId,
         displayName: found.displayName,
         technicalName: found.technicalName,
-        dataType: found.dataType,
         displayOrder: editFields.length + 1,
-        customFormula: found.defaultFormula,
+        customFormula: '',
         customNote: '',
       },
     ]);
@@ -234,8 +253,54 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     showToast(`فیلد «${found.displayName}» افزوده شد.`, 'success');
   };
 
+  // حذف فیلد از گزارش با به‌روزرسانی ترتیب
   const handleRemoveFieldFromReport = (fieldId: number) => {
-    setEditFields(editFields.filter((f) => f.fieldId !== fieldId));
+    const remaining = editFields.filter((f) => f.fieldId !== fieldId);
+    const reindexed = remaining.map((f, idx) => ({
+      ...f,
+      displayOrder: idx + 1,
+    }));
+    setEditFields(reindexed);
+  };
+
+  // جابه‌جایی چیدمان فیلدها در گزارش (Move Up / Down)
+  const handleMoveField = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= editFields.length) return;
+    const updated = [...editFields];
+    const [movedItem] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, movedItem);
+
+    // بازشماری ترتیب نمایش بر اساس چیدمان جدید
+    const reindexed = updated.map((f, idx) => ({
+      ...f,
+      displayOrder: idx + 1,
+    }));
+    setEditFields(reindexed);
+
+    if (formulaEditingFieldIndex !== null) {
+      if (formulaEditingFieldIndex === fromIndex) {
+        setFormulaEditingFieldIndex(toIndex);
+      } else if (formulaEditingFieldIndex === toIndex) {
+        setFormulaEditingFieldIndex(fromIndex);
+      }
+    }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedFieldIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedFieldIndex === null || draggedFieldIndex === targetIndex) {
+      setDraggedFieldIndex(null);
+      return;
+    }
+    handleMoveField(draggedFieldIndex, targetIndex);
+    setDraggedFieldIndex(null);
   };
 
   // افزودن پارامتر از بانک پارامترها
@@ -293,7 +358,11 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       showToast('تغییرات گزارش با موفقیت ذخیره شد.', 'success');
       onRefresh();
     } catch (err: any) {
-      showToast(err.response?.data?.message || 'خطا در ذخیره تغییرات', 'error');
+      const msg = err.response?.data?.message || 
+        (err.response?.status === 401 ? 'نشست کاربری منقضی شده بود؛ سیستم متصل شد، لطفاً دوباره دکمه ذخیره را بزنید.' : '') ||
+        (err.response?.status === 403 ? 'دسترسی مجاز برای ذخیره تغییرات وجود ندارد.' : '') ||
+        'خطا در ذخیره تغییرات';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
@@ -538,6 +607,11 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
             </h3>
             <span className="text-[11px] text-slate-500">
               تعداد: {filteredFields.length} فیلد
+              {isEditing && (
+                <span className="text-indigo-600 font-bold mr-2">
+                  (با دکمه‌های فلش یا کشیدن سطرها چیدمان ستون‌ها را تنظیم کنید)
+                </span>
+              )}
             </span>
           </div>
 
@@ -564,7 +638,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
               <option value="">انتخاب فیلد از بانک مرکزی فیلدها جهت اضافه کردن...</option>
               {availableBankFields.map((bf) => (
                 <option key={bf.fieldId} value={bf.fieldId}>
-                  {bf.displayName} ({bf.technicalName || bf.dataType})
+                  {bf.displayName} {bf.technicalName ? `(${bf.technicalName})` : ''}
                 </option>
               ))}
             </select>
@@ -584,108 +658,163 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           <table className="w-full text-right text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px]">
-                <th className="py-2.5 px-3 w-12 text-center">ردیف</th>
+                <th className="py-2.5 px-3 w-16 text-center">چیدمان / ردیف</th>
                 <th className="py-2.5 px-3">عنوان استاندارد</th>
                 <th className="py-2.5 px-3 font-mono">نام فنی/دیتابیسی</th>
-                <th className="py-2.5 px-2">نوع داده</th>
                 <th className="py-2.5 px-3">توضیح اختصاصی / فرمول خاص این فیلد</th>
-                {isEditing && <th className="py-2.5 px-2 text-center w-12">حذف</th>}
+                {isEditing && <th className="py-2.5 px-2 text-center w-28">عملیات و چیدمان</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredFields.map((field, idx) => (
-                <tr key={field.fieldId} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-2.5 px-3 font-mono text-slate-400 text-center">{field.displayOrder || idx + 1}</td>
-                  <td className="py-2.5 px-3 font-bold text-slate-800">{field.displayName}</td>
-                  <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{field.technicalName || '-'}</td>
-                  <td className="py-2.5 px-2">
-                    <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-mono border border-slate-200">
-                      {field.dataType}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-slate-600 text-[11px]">
-                    {isEditing ? (
-                      <div className="space-y-1.5">
-                        <input
-                          type="text"
-                          value={field.customNote || ''}
-                          onChange={(e) => {
-                            const updated = [...editFields];
-                            updated[idx] = { ...updated[idx], customNote: e.target.value };
-                            setEditFields(updated);
-                          }}
-                          placeholder="توضیح تفاوت یا یادداشت خاص..."
-                          className="w-full text-xs border border-slate-300 rounded-lg p-1.5"
-                        />
-                        <div className="flex items-center gap-1">
+              {filteredFields.map((field, idx) => {
+                const canReorder = isEditing && !fieldFilterText;
+                return (
+                  <tr
+                    key={field.fieldId}
+                    draggable={canReorder}
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(idx)}
+                    className={`hover:bg-slate-50/80 transition-colors ${
+                      canReorder ? 'cursor-move' : ''
+                    } ${
+                      draggedFieldIndex === idx
+                        ? 'opacity-40 bg-indigo-50 border-2 border-dashed border-indigo-400'
+                        : ''
+                    }`}
+                  >
+                    <td className="py-2.5 px-3 text-center border-l border-slate-100">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {canReorder && (
+                          <span
+                            title="برای تغییر ترتیب، این سطر را با ماوس بکشید و در جایگاه دلخواه رها کنید (Drag & Drop)"
+                            className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-indigo-600 p-0.5 rounded hover:bg-slate-200/60 transition-colors"
+                          >
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                        <span className="font-mono text-slate-700 font-bold text-xs bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 min-w-5 text-center">
+                          {idx + 1}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 font-bold text-slate-800">{field.displayName}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{field.technicalName || '-'}</td>
+                    <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                      {isEditing ? (
+                        <div className="space-y-1.5">
                           <input
                             type="text"
-                            value={field.customFormula || ''}
+                            value={field.customNote || ''}
                             onChange={(e) => {
                               const updated = [...editFields];
-                              updated[idx] = { ...updated[idx], customFormula: e.target.value };
+                              updated[idx] = { ...updated[idx], customNote: e.target.value };
                               setEditFields(updated);
                             }}
-                            placeholder="فرمول اختصاصی این فیلد (اختیاری)..."
-                            className="flex-1 text-[11px] font-mono border border-slate-200 rounded-lg p-1 bg-slate-50"
-                            dir="ltr"
+                            placeholder="توضیح تفاوت یا یادداشت خاص..."
+                            className="w-full text-xs border border-slate-300 rounded-lg p-1.5"
                           />
-                          <button
-                            type="button"
-                            onClick={() => setFormulaEditingFieldIndex(formulaEditingFieldIndex === idx ? null : idx)}
-                            className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded font-bold"
-                          >
-                            عملگرها
-                          </button>
-                        </div>
-
-                        {/* فرمول‌ساز بازشونده برای فیلد مشخص */}
-                        {formulaEditingFieldIndex === idx && (
-                          <div className="pt-2">
-                            <FormulaBuilder
-                              formula={field.customFormula || ''}
-                              onChange={(val) => {
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={field.customFormula || ''}
+                              onChange={(e) => {
                                 const updated = [...editFields];
-                                updated[idx] = { ...updated[idx], customFormula: val };
+                                updated[idx] = { ...updated[idx], customFormula: e.target.value };
                                 setEditFields(updated);
                               }}
-                              availableFields={editFields.filter((_, i) => i !== idx)}
-                              label={`فرمول محاسباتی فیلد «${field.displayName}»`}
+                              placeholder="فرمول اختصاصی این فیلد (اختیاری)..."
+                              className="flex-1 text-[11px] font-mono border border-slate-200 rounded-lg p-1 bg-slate-50"
+                              dir="ltr"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setFormulaEditingFieldIndex(formulaEditingFieldIndex === idx ? null : idx)}
+                              className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded font-bold"
+                            >
+                              عملگرها
+                            </button>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        {field.customNote && <p>{field.customNote}</p>}
-                        {field.customFormula && (
-                          <code className="text-[10px] text-indigo-700 font-mono block mt-0.5" dir="ltr">
-                            {field.customFormula}
-                          </code>
-                        )}
-                        {!field.customNote && !field.customFormula && '-'}
-                      </div>
-                    )}
-                  </td>
-                  {isEditing && (
-                    <td className="py-2.5 px-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFieldFromReport(field.fieldId)}
-                        className="text-slate-400 hover:text-rose-600 p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+
+                          {/* فرمول‌ساز بازشونده برای فیلد مشخص */}
+                          {formulaEditingFieldIndex === idx && (
+                            <div className="pt-2">
+                              <FormulaBuilder
+                                formula={field.customFormula || ''}
+                                onChange={(val) => {
+                                  const updated = [...editFields];
+                                  updated[idx] = { ...updated[idx], customFormula: val };
+                                  setEditFields(updated);
+                                }}
+                                availableFields={editFields.filter((_, i) => i !== idx)}
+                                label={`فرمول محاسباتی فیلد «${field.displayName}»`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          {field.customNote && <p>{field.customNote}</p>}
+                          {field.customFormula && (
+                            <code className="text-[10px] text-indigo-700 font-mono block mt-0.5" dir="ltr">
+                              {field.customFormula}
+                            </code>
+                          )}
+                          {!field.customNote && !field.customFormula && '-'}
+                        </div>
+                      )}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    {isEditing && (
+                      <td className="py-2.5 px-2 text-center border-r border-slate-100">
+                        <div className="flex items-center justify-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveField(idx, idx - 1)}
+                            disabled={idx === 0 || Boolean(fieldFilterText)}
+                            title="انتقال به بالا (یک پله جلوتر در پیش‌نمایش)"
+                            className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:hover:text-slate-400 p-1 rounded hover:bg-slate-100 transition-colors"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveField(idx, idx + 1)}
+                            disabled={idx === editFields.length - 1 || Boolean(fieldFilterText)}
+                            title="انتقال به پایین (یک پله عقب‌تر در پیش‌نمایش)"
+                            className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:hover:text-slate-400 p-1 rounded hover:bg-slate-100 transition-colors"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFieldFromReport(field.fieldId)}
+                            title="حذف فیلد از گزارش"
+                            className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors mr-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* ۴. پارامترهای ورودی (متصل به بانک پارامترها) */}
+      {/* ۴. پیش‌نمایش و خروجی شبیه‌سازی‌شده گزارش (با تعامل روی فرمول‌ها) */}
+      <MockReportPreview
+        reportTitle={isEditing ? editTitle : report.title}
+        reportCode={report.reportCode}
+        fields={isEditing ? editFields : (report.fields || [])}
+        parameters={isEditing ? editParams : (report.parameters || [])}
+        reportCalculationFormula={isEditing ? editFormula : report.calculationFormula}
+        onOpenFieldManager={() => setIsEditing(true)}
+      />
+
+      {/* ۵. پارامترهای ورودی (متصل به بانک پارامترها) */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">

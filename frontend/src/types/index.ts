@@ -56,17 +56,16 @@ export interface ReportFieldItem {
   fieldId: number;
   displayName: string;
   technicalName?: string;
-  dataType: string;
+  dataType?: string;
   displayOrder: number;
   customFormula?: string;
-  defaultFormula?: string;
   customNote?: string;
 }
 
 export interface ReportParameterItem {
   parameterId: number;
   parameterName: string;
-  dataType: string;
+  dataType?: string;
   isRequired: boolean;
   description?: string;
 }
@@ -113,9 +112,7 @@ export interface FieldBankItem {
   fieldId: number;
   displayName: string;
   technicalName?: string;
-  dataType: string;
   standardDescription?: string;
-  defaultFormula?: string;
 }
 
 export interface ParameterBankItem {
