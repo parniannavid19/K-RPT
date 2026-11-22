@@ -1,7 +1,9 @@
+using KRpt.Api.Hubs;
 using KRpt.Core.DTOs;
 using KRpt.Core.Entities;
 using KRpt.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace KRpt.Api.Controllers;
@@ -11,10 +13,12 @@ namespace KRpt.Api.Controllers;
 public class FieldBankController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IHubContext<ReportLockHub> _hubContext;
 
-    public FieldBankController(AppDbContext context)
+    public FieldBankController(AppDbContext context, IHubContext<ReportLockHub> hubContext)
     {
         _context = context;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -60,6 +64,16 @@ public class FieldBankController : ControllerBase
         await _context.SaveChangesAsync();
 
         dto.FieldId = field.FieldId;
+
+        // اعلان تغییرات به تمامی کلاینت‌های متصل
+        await _hubContext.Clients.All.SendAsync("FieldBankChanged", new
+        {
+            action = "create",
+            fieldId = field.FieldId,
+            displayName = field.DisplayName,
+            technicalName = field.TechnicalName
+        });
+
         return CreatedAtAction(nameof(GetFields), new { id = field.FieldId }, dto);
     }
 
@@ -73,12 +87,101 @@ public class FieldBankController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.DisplayName))
             return BadRequest(new { message = "عنوان فارسی فیلد الزامی است." });
 
-        field.DisplayName = dto.DisplayName.Trim();
-        field.TechnicalName = dto.TechnicalName?.Trim();
+        string oldDisplayName = field.DisplayName.Trim();
+        string newDisplayName = dto.DisplayName.Trim();
+        string? oldTechName = field.TechnicalName?.Trim();
+        string? newTechName = dto.TechnicalName?.Trim();
+
+        field.DisplayName = newDisplayName;
+        field.TechnicalName = newTechName;
         field.StandardDescription = dto.StandardDescription?.Trim();
 
+        // در صورت تغییر عنوان نمایشی فیلد، ارجاعات فرمولی فیلد در تمام گزارش‌ها و فیلدهای اختصاصی نیز هوشمندانه به‌روزرسانی می‌شوند
+        if (!string.Equals(oldDisplayName, newDisplayName, StringComparison.OrdinalIgnoreCase))
+        {
+            string oldRefUnderscore = "@" + oldDisplayName.Replace(" ", "_");
+            string newRefUnderscore = "@" + newDisplayName.Replace(" ", "_");
+            string oldRefDirect = "@" + oldDisplayName;
+            string newRefDirect = "@" + newDisplayName;
+
+            // ۱. فرمول‌های محاسباتی کلی گزارش‌ها
+            var reportsWithFormula = await _context.Reports
+                .Where(r => r.CalculationFormula != null &&
+                           (r.CalculationFormula.Contains(oldRefUnderscore) ||
+                            r.CalculationFormula.Contains(oldRefDirect) ||
+                            r.CalculationFormula.Contains(oldDisplayName)))
+                .ToListAsync();
+
+            foreach (var rep in reportsWithFormula)
+            {
+                if (rep.CalculationFormula != null)
+                {
+                    rep.CalculationFormula = rep.CalculationFormula
+                        .Replace(oldRefUnderscore, newRefUnderscore)
+                        .Replace(oldRefDirect, newRefDirect)
+                        .Replace("@" + oldDisplayName, "@" + newDisplayName);
+                    rep.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            // ۲. فرمول‌های محاسباتی اختصاصی فیلدهای گزارش‌ها
+            var reportFieldsWithFormula = await _context.ReportFields
+                .Where(rf => rf.CustomFormula != null &&
+                             (rf.CustomFormula.Contains(oldRefUnderscore) ||
+                              rf.CustomFormula.Contains(oldRefDirect) ||
+                              rf.CustomFormula.Contains(oldDisplayName)))
+                .ToListAsync();
+
+            foreach (var rf in reportFieldsWithFormula)
+            {
+                if (rf.CustomFormula != null)
+                {
+                    rf.CustomFormula = rf.CustomFormula
+                        .Replace(oldRefUnderscore, newRefUnderscore)
+                        .Replace(oldRefDirect, newRefDirect)
+                        .Replace("@" + oldDisplayName, "@" + newDisplayName);
+                }
+            }
+        }
+
+        // شناسایی کلیه گزارش‌هایی که این فیلد در آن‌ها استفاده شده است جهت تازه کردن تاریخچه
+        var affectedReportIds = await _context.ReportFields
+            .Where(rf => rf.FieldId == id)
+            .Select(rf => rf.ReportId)
+            .Distinct()
+            .ToListAsync();
+
+        if (affectedReportIds.Count > 0)
+        {
+            var reportsToTouch = await _context.Reports
+                .Where(r => affectedReportIds.Contains(r.ReportId))
+                .ToListAsync();
+
+            foreach (var rep in reportsToTouch)
+            {
+                rep.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         await _context.SaveChangesAsync();
-        return Ok(new { success = true, message = "فیلد با موفقیت ویرایش شد." });
+
+        // اعلان زنده تغییرات فیلد به کلیه کلاینت‌های متصل از طریق SignalR
+        await _hubContext.Clients.All.SendAsync("FieldBankChanged", new
+        {
+            action = "update",
+            fieldId = id,
+            displayName = field.DisplayName,
+            technicalName = field.TechnicalName,
+            standardDescription = field.StandardDescription,
+            affectedReportIds = affectedReportIds
+        });
+
+        return Ok(new
+        {
+            success = true,
+            message = "فیلد با موفقیت ویرایش شد و در تمام بخش‌ها و گزارش‌های وابسته اعمال گردید.",
+            affectedReportsCount = affectedReportIds.Count
+        });
     }
 
     [HttpDelete("{id}")]
@@ -99,6 +202,8 @@ public class FieldBankController : ControllerBase
             });
         }
 
+        var affectedReportIds = field.ReportFields.Select(rf => rf.ReportId).Distinct().ToList();
+
         if (field.ReportFields.Any() && force)
         {
             _context.ReportFields.RemoveRange(field.ReportFields);
@@ -106,6 +211,14 @@ public class FieldBankController : ControllerBase
 
         _context.FieldBank.Remove(field);
         await _context.SaveChangesAsync();
+
+        // اعلان حذف فیلد به تمامی کلاینت‌های متصل
+        await _hubContext.Clients.All.SendAsync("FieldBankChanged", new
+        {
+            action = "delete",
+            fieldId = id,
+            affectedReportIds = affectedReportIds
+        });
 
         return Ok(new { success = true, message = "فیلد از بانک مرکزی حذف شد." });
     }

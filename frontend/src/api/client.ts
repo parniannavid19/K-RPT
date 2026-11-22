@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { CreateUserDto, DiffResponse, FieldBankItem, ParameterBankItem, ReportDetail, SearchResultItem, Tag, TreeNode, UpdateUserDto, User, UserDto } from '../types';
+import type { CreateUserDto, DiffResponse, FieldBankItem, MultiReportDiffResponse, ParameterBankItem, ReportDetail, SearchResultItem, Tag, TreeNode, UpdateUserDto, User, UserDto } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -225,6 +225,10 @@ export const diffApi = {
     const res = await api.get<DiffResponse>('/diff', {
       params: { reportAId, reportBId },
     });
+    return res.data;
+  },
+  compareMultiple: async (reportIds: number[]): Promise<MultiReportDiffResponse> => {
+    const res = await api.post<MultiReportDiffResponse>('/diff/multi', { reportIds });
     return res.data;
   },
 };

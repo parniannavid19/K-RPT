@@ -18,7 +18,6 @@ interface MockReportPreviewProps {
   reportCode: string;
   fields: ReportFieldItem[];
   parameters?: ReportParameterItem[];
-  reportCalculationFormula?: string;
   onOpenFieldManager?: () => void;
 }
 
@@ -27,7 +26,6 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
   reportCode,
   fields,
   parameters = [],
-  reportCalculationFormula,
   onOpenFieldManager,
 }) => {
   const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
@@ -438,18 +436,6 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
             </div>
           )}
 
-          {/* اگر فرمول کلی در سطح گزارش وجود دارد */}
-          {!selectedField && reportCalculationFormula && (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-600 font-medium">فرمول کلی گزارش:</span>
-                <span className="font-bold text-slate-800">{reportCalculationFormula}</span>
-              </div>
-              <span className="text-[10px] text-slate-400">فرمول تجمیعی</span>
-            </div>
-          )}
-
           {/* جدول شبیه‌سازی‌شده خروجی گزارش با کلیه فیلدها */}
           <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
             <div className="overflow-x-auto max-h-[420px]">
@@ -475,16 +461,16 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
                               setSelectedFieldId(isSelected ? null : field.fieldId);
                             }
                           }}
-                          className={`py-3 px-3.5 transition-colors border-l border-slate-200/70 whitespace-nowrap select-none ${
-                            hasFormula ? 'cursor-pointer hover:bg-indigo-50/80' : ''
-                          } ${
-                            isSelected
-                              ? 'bg-indigo-100 text-indigo-900 ring-2 ring-indigo-400 ring-inset'
-                              : ''
+                          className={`py-3 px-3.5 transition-colors border-l whitespace-nowrap select-none ${
+                            hasFormula
+                              ? isSelected
+                                ? 'bg-indigo-100 text-indigo-950 ring-2 ring-indigo-500 ring-inset border-indigo-300 font-bold'
+                                : 'bg-indigo-50/90 text-indigo-950 border-indigo-200/90 hover:bg-indigo-100/70 font-bold cursor-pointer'
+                              : 'bg-slate-100/90 text-slate-700 border-slate-200/70 font-bold'
                           }`}
                           title={
                             hasFormula
-                              ? `فیلد فرمول‌دار: کلیک کنید تا فرمول (${formula}) نمایش داده شود`
+                              ? `فیلد محاسباتی فرمول‌دار: کلیک کنید تا فرمول (${formula}) نمایش داده شود`
                               : field.displayName
                           }
                         >
@@ -492,10 +478,10 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
                             <span className="font-bold">{field.displayName}</span>
                             {hasFormula && (
                               <span
-                                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 transition-colors ${
+                                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 transition-colors shadow-2xs ${
                                   isSelected
-                                    ? 'bg-indigo-600 text-white shadow-2xs'
-                                    : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                    ? 'bg-indigo-700 text-white'
+                                    : 'bg-indigo-600 text-white'
                                 }`}
                               >
                                 <span className="font-mono">fx</span>
@@ -542,19 +528,23 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
                                   setSelectedFieldId(isSelected ? null : field.fieldId);
                                 }
                               }}
-                              className={`py-2.5 px-3.5 border-l border-slate-100 whitespace-nowrap transition-colors ${
-                                hasFormula ? 'cursor-pointer' : ''
-                              } ${
-                                isSelected
-                                  ? 'bg-indigo-50/80 text-indigo-950 font-bold border-l-indigo-200'
-                                  : 'text-slate-700'
+                              className={`py-2.5 px-3.5 border-l whitespace-nowrap transition-colors ${
+                                hasFormula
+                                  ? isSelected
+                                    ? 'bg-indigo-100/90 text-indigo-950 font-bold border-indigo-300 cursor-pointer'
+                                    : 'bg-indigo-50/40 text-indigo-950 font-medium border-indigo-100/90 hover:bg-indigo-100/50 cursor-pointer'
+                                  : 'text-slate-700 border-slate-100'
                               }`}
-                              title={hasFormula ? `فرمول: ${formula}` : undefined}
+                              title={hasFormula ? `فرمول این فیلد: ${formula}` : undefined}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span>{cellVal}</span>
-                                {hasFormula && isSelected && (
-                                  <span className="text-[9px] text-indigo-600 bg-white px-1 rounded border border-indigo-200">
+                                {hasFormula && (
+                                  <span className={`text-[9px] px-1 rounded border transition-colors ${
+                                    isSelected
+                                      ? 'text-white bg-indigo-700 border-indigo-700 font-bold'
+                                      : 'text-indigo-700 bg-indigo-100/80 border-indigo-200'
+                                  }`}>
                                     fx
                                   </span>
                                 )}

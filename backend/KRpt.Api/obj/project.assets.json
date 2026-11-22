@@ -3094,11 +3094,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\KRpt.Api.csproj",
+      "projectUniqueName": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\KRpt.Api.csproj",
       "projectName": "KRpt.Api",
-      "projectPath": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\KRpt.Api.csproj",
+      "projectPath": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\KRpt.Api.csproj",
       "packagesPath": "C:\\Users\\n.parnian\\.nuget\\packages\\",
-      "outputPath": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\obj\\",
+      "outputPath": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3120,11 +3120,11 @@
           "framework": "net9.0",
           "targetAlias": "net9.0",
           "projectReferences": {
-            "D:\\Ni Project\\K-RPT\\backend\\KRpt.Core\\KRpt.Core.csproj": {
-              "projectPath": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Core\\KRpt.Core.csproj"
+            "d:\\Ni Project\\K-RPT\\backend\\KRpt.Core\\KRpt.Core.csproj": {
+              "projectPath": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Core\\KRpt.Core.csproj"
             },
-            "D:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj": {
-              "projectPath": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj"
+            "d:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj": {
+              "projectPath": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj"
             }
           }
         }

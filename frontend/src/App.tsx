@@ -24,6 +24,7 @@ function MainApp() {
   const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
   const [compareReportA, setCompareReportA] = useState<number | null>(null);
   const [compareReportB, setCompareReportB] = useState<number | null>(null);
+  const [fieldBankVersion, setFieldBankVersion] = useState(0);
 
   // بارگذاری کاربر از حافظه مرورگر و تضمین اعتبار نشست
   useEffect(() => {
@@ -136,6 +137,13 @@ function MainApp() {
             setReportDetail(null);
           }
         });
+
+        connection.on('FieldBankChanged', () => {
+          setFieldBankVersion((v) => v + 1);
+          if (selectedReportId) {
+            loadReport(selectedReportId);
+          }
+        });
       })
       .catch((err) => console.log('SignalR Connection Error:', err));
 
@@ -205,6 +213,7 @@ function MainApp() {
               onCompareWith={handleCompareWith}
               isLoading={reportLoading}
               moduleTitle={getParentModuleTitle(selectedReportId)}
+              fieldBankVersion={fieldBankVersion}
               onReportDeleted={() => {
                 setSelectedReportId(null);
                 setReportDetail(null);
@@ -214,13 +223,14 @@ function MainApp() {
           )}
 
           {activeTab === 'search' && (
-            <SearchView onSelectReport={handleSelectReport} />
+            <SearchView onSelectReport={handleSelectReport} fieldBankVersion={fieldBankVersion} />
           )}
 
           {activeTab === 'diff' && (
             <DiffView
               initialReportAId={compareReportA || selectedReportId}
               initialReportBId={compareReportB}
+              fieldBankVersion={fieldBankVersion}
             />
           )}
         </main>
@@ -231,6 +241,12 @@ function MainApp() {
         isOpen={isFieldBankOpen}
         onClose={() => setIsFieldBankOpen(false)}
         currentUser={currentUser}
+        onFieldUpdated={() => {
+          setFieldBankVersion((v) => v + 1);
+          if (selectedReportId) {
+            loadReport(selectedReportId);
+          }
+        }}
       />
 
       {/* مدال تنظیمات سیستم و مدیریت کاربران (فقط ادمین) */}

@@ -8,12 +8,14 @@ interface FieldBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
+  onFieldUpdated?: () => void;
 }
 
 export const FieldBankModal: React.FC<FieldBankModalProps> = ({
   isOpen,
   onClose,
   currentUser,
+  onFieldUpdated,
 }) => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'fields' | 'params'>('fields');
@@ -122,6 +124,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
 
       setShowFieldForm(false);
       loadFields();
+      onFieldUpdated?.();
     } catch (err: any) {
       showToast(err.response?.data?.message || 'خطا در ثبت فیلد', 'error');
     }
@@ -134,6 +137,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
       await fieldBankApi.delete(field.fieldId, false);
       showToast('فیلد با موفقیت حذف شد.', 'info');
       loadFields();
+      onFieldUpdated?.();
     } catch (err: any) {
       const msg = err.response?.data?.message || '';
       if (msg.includes('گزارش')) {
@@ -141,6 +145,7 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
           await fieldBankApi.delete(field.fieldId, true);
           showToast('فیلد با موفقیت حذف شد.', 'info');
           loadFields();
+          onFieldUpdated?.();
         }
       } else {
         showToast(msg || 'خطا در حذف فیلد', 'error');

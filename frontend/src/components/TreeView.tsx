@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { TreeNode, User } from '../types';
 import {
   ArrowLeftRight,
@@ -227,6 +227,20 @@ export const TreeView: React.FC<TreeViewProps> = ({
 
   const filteredNodes = filterTree(nodes, searchTerm);
 
+  // شمارش تعداد گزارش‌های منطبق با جستجو
+  const matchingCount = useMemo(() => {
+    if (!searchTerm.trim()) return null;
+    const countReports = (list: TreeNode[]): number => {
+      let count = 0;
+      for (const item of list) {
+        if (item.nodeType === 2 && item.reportId) count++;
+        if (item.children && item.children.length > 0) count += countReports(item.children);
+      }
+      return count;
+    };
+    return countReports(filteredNodes);
+  }, [filteredNodes, searchTerm]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -432,11 +446,6 @@ export const TreeView: React.FC<TreeViewProps> = ({
 
             {!isFolder && (
               <div className="flex items-center gap-1 shrink-0 self-start mt-0.5">
-                {node.reportCode && (
-                  <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded shrink-0">
-                    {node.reportCode}
-                  </span>
-                )}
                 {node.isLocked && (
                   <span title={`در حال بررسی توسط ${node.lockedByUserName}`} className="text-rose-600 shrink-0">
                     <Lock className="w-3.5 h-3.5" />
@@ -450,6 +459,11 @@ export const TreeView: React.FC<TreeViewProps> = ({
                 {node.status === 1 && (
                   <span title="در انتظار بررسی" className="text-amber-500 shrink-0">
                     <Clock className="w-3.5 h-3.5" />
+                  </span>
+                )}
+                {node.reportCode && (
+                  <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded shrink-0">
+                    {node.reportCode}
                   </span>
                 )}
               </div>
@@ -536,16 +550,36 @@ export const TreeView: React.FC<TreeViewProps> = ({
           )}
         </div>
 
-        {/* جست‌وجوی سریع */}
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="جست‌وجوی کد یا نام گزارش..."
-            className="w-full text-xs pr-8 pl-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-          />
+        {/* جست‌وجوی سریع با نمایش تعداد نتایج */}
+        <div className="space-y-1.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="جست‌وجوی کد یا نام گزارش..."
+              className="w-full text-xs pr-8 pl-7 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                title="پاک‌کردن جستجو"
+                className="absolute left-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {matchingCount !== null && (
+            <div className="flex items-center justify-between text-[11px] px-1 text-slate-600 bg-blue-50/60 p-1 rounded-md border border-blue-100">
+              <span>گزارش‌های منطبق:</span>
+              <span className="font-bold text-blue-700 bg-white border border-blue-200 px-2 py-0.2 rounded-full shadow-2xs">
+                {matchingCount} گزارش
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -681,17 +715,6 @@ export const TreeView: React.FC<TreeViewProps> = ({
                       placeholder="سناریوی استفاده و هدف گزارش..."
                       rows={2}
                       className="w-full text-xs border border-slate-300 rounded-lg p-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">فرمول محاسباتی (اختیاری)</label>
-                    <input
-                      type="text"
-                      value={formula}
-                      onChange={(e) => setFormula(e.target.value)}
-                      placeholder="مثال: مغایرت = مانده دفتری - مانده بانک"
-                      className="w-full text-xs border border-slate-300 rounded-lg p-2 font-mono"
                     />
                   </div>
                 </>

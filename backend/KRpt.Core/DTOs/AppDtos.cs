@@ -226,3 +226,52 @@ public class CompareReportsResponseDto
     public List<FieldDiffDto> FieldDiffs { get; set; } = new();
     public List<ParameterDiffDto> ParameterDiffs { get; set; } = new();
 }
+
+public class MultiReportCompareRequestDto
+{
+    public List<int> ReportIds { get; set; } = new();
+}
+
+public class MultiReportFieldPresenceDto
+{
+    public int ReportId { get; set; }
+    public string ReportCode { get; set; } = string.Empty;
+    public string ReportTitle { get; set; } = string.Empty;
+    public bool Exists { get; set; }
+    public int DisplayOrder { get; set; }
+    public string? CustomFormula { get; set; }
+    public string? CustomNote { get; set; }
+}
+
+public class MultiReportFieldDiffDto
+{
+    public int FieldId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string? TechnicalName { get; set; }
+    public bool IsCommonToAll { get; set; }
+    public bool HasFormulaDifference { get; set; }
+    public List<MultiReportFieldPresenceDto> Presence { get; set; } = new();
+}
+
+public class MultiReportParamPresenceDto
+{
+    public int ReportId { get; set; }
+    public string ReportCode { get; set; } = string.Empty;
+    public bool Exists { get; set; }
+    public bool? IsRequired { get; set; }
+    public string? DataType { get; set; }
+}
+
+public class MultiReportParamDiffDto
+{
+    public string ParameterName { get; set; } = string.Empty;
+    public bool IsCommonToAll { get; set; }
+    public List<MultiReportParamPresenceDto> Presence { get; set; } = new();
+}
+
+public class MultiReportCompareResponseDto
+{
+    public List<ReportDetailDto> Reports { get; set; } = new();
+    public List<MultiReportFieldDiffDto> FieldDiffs { get; set; } = new();
+    public List<MultiReportParamDiffDto> ParameterDiffs { get; set; } = new();
+}

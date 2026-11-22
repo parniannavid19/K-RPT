@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { FieldBankItem, ParameterBankItem, ReportDetail, Tag, User } from '../types';
 import { fieldBankApi, parameterBankApi, reportsApi, tagsApi } from '../api/client';
 import { FormulaBuilder } from './FormulaBuilder';
@@ -6,14 +6,12 @@ import { MockReportPreview } from './MockReportPreview';
 import { useToast } from './Toast';
 import {
   AlertCircle,
-  Calculator,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronUp,
   Clock,
-  Copy,
   Edit3,
   ExternalLink,
   FileSpreadsheet,
@@ -37,6 +35,7 @@ interface ReportDetailViewProps {
   isLoading: boolean;
   onReportDeleted?: () => void;
   moduleTitle?: string;
+  fieldBankVersion?: number;
 }
 
 export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
@@ -47,18 +46,23 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   isLoading,
   onReportDeleted,
   moduleTitle,
+  fieldBankVersion,
 }) => {
   const { showToast } = useToast();
   const [actionLoading, setActionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const prevReportIdRef = useRef<number | null>(null);
 
   // حالت‌های ویرایش
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const [editFormula, setEditFormula] = useState('');
   const [editFields, setEditFields] = useState<ReportDetail['fields']>([]);
   const [editParams, setEditParams] = useState<ReportDetail['parameters']>([]);
   const [editTags, setEditTags] = useState<Tag[]>([]);
+
+  // برچسب جدید سریع در حالت ویرایش
+  const [newTagNameInput, setNewTagNameInput] = useState('');
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
 
   // بانک‌های مرکزی جهت انتخاب
   const [availableBankFields, setAvailableBankFields] = useState<FieldBankItem[]>([]);
@@ -68,7 +72,6 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   const [allSystemTags, setAllSystemTags] = useState<Tag[]>([]);
 
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [copiedFormula, setCopiedFormula] = useState(false);
   const [fieldFilterText, setFieldFilterText] = useState('');
 
   // فیلدی که فرمول‌ساز آن در حال ویرایش است
@@ -88,16 +91,51 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
 
   useEffect(() => {
     if (report) {
+      const isDifferentReport = prevReportIdRef.current !== report.reportId;
+      prevReportIdRef.current = report.reportId;
+
       setEditTitle(report.title);
       setEditDesc(report.functionalDescription || '');
-      setEditFormula(report.calculationFormula || '');
-      setEditFields(report.fields || []);
-      setEditParams(report.parameters || []);
-      setEditTags(report.tags || []);
-      setIsEditing(false);
-      setFormulaEditingFieldIndex(null);
+
+      if (isDifferentReport || !isEditing) {
+        setEditFields(report.fields || []);
+        setEditParams(report.parameters || []);
+        setEditTags(report.tags || []);
+        setIsEditing(false);
+        setFormulaEditingFieldIndex(null);
+      } else {
+        // همگام‌سازی لحظه‌ای نام و مشخصات فیلدهای اصلاح‌شده در بانک بدون اختلال در فرم ویرایش باز
+        setEditFields((prev) =>
+          prev.map((pf) => {
+            const updated = report.fields?.find((rf) => rf.fieldId === pf.fieldId);
+            return updated
+              ? { ...pf, displayName: updated.displayName, technicalName: updated.technicalName }
+              : pf;
+          })
+        );
+      }
     }
   }, [report]);
+
+  // واکنش زنده به تغییرات بانک مرکزی فیلدها
+  useEffect(() => {
+    if (fieldBankVersion && fieldBankVersion > 0) {
+      fieldBankApi.getAll().then((bankFields) => {
+        setAvailableBankFields(bankFields);
+        setEditFields((prev) =>
+          prev.map((pf) => {
+            const bf = bankFields.find((b) => b.fieldId === pf.fieldId);
+            return bf
+              ? { ...pf, displayName: bf.displayName, technicalName: bf.technicalName }
+              : pf;
+          })
+        );
+      });
+      if (!isEditing) {
+        onRefresh();
+      }
+    }
+  }, [fieldBankVersion]);
 
   useEffect(() => {
     if (isEditing) {
@@ -119,14 +157,6 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
 
     return () => clearInterval(interval);
   }, [report, currentSessionId, currentUser]);
-
-  const copyFormulaToClipboard = () => {
-    if (!report?.calculationFormula) return;
-    navigator.clipboard.writeText(report.calculationFormula);
-    setCopiedFormula(true);
-    showToast('فرمول محاسباتی در کلیپ‌بورد کپی شد.', 'info');
-    setTimeout(() => setCopiedFormula(false), 2000);
-  };
 
   if (isLoading) {
     return (
@@ -343,13 +373,34 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     }
   };
 
+  // ایجاد سریع برچسب و انتساب به گزارش
+  const handleQuickCreateTag = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newTagNameInput.trim()) return;
+    setIsCreatingTag(true);
+    try {
+      const created = await tagsApi.create({ tagName: newTagNameInput.trim() });
+      if (!allSystemTags.some((t) => t.tagId === created.tagId)) {
+        setAllSystemTags((prev) => [...prev, created]);
+      }
+      if (!editTags.some((t) => t.tagId === created.tagId)) {
+        setEditTags((prev) => [...prev, created]);
+      }
+      setNewTagNameInput('');
+      showToast(`برچسب «${created.tagName}» ایجاد و به این گزارش انتساب یافت.`, 'success');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'خطا در ایجاد برچسب جدید', 'error');
+    } finally {
+      setIsCreatingTag(false);
+    }
+  };
+
   const handleSaveEdit = async () => {
     setActionLoading(true);
     try {
       await reportsApi.update(report.reportId, {
         title: editTitle,
         functionalDescription: editDesc,
-        calculationFormula: editFormula,
         fields: editFields,
         parameters: editParams,
         tags: editTags,
@@ -564,40 +615,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         )}
       </div>
 
-      {/* ۲. فرمول‌های محاسباتی با سازنده تعاملی عملگرها */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-indigo-600" />
-            فرمول‌های محاسباتی و منطق کلی گزارش
-          </h3>
-          {!isEditing && report.calculationFormula && (
-            <button
-              onClick={copyFormulaToClipboard}
-              className="text-[11px] text-slate-600 hover:text-blue-600 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              {copiedFormula ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedFormula ? 'کپی شد' : 'کپی فرمول'}</span>
-            </button>
-          )}
-        </div>
-
-        {isEditing ? (
-          <FormulaBuilder
-            formula={editFormula}
-            onChange={setEditFormula}
-            availableFields={editFields}
-            label="سازنده تعاملی فرمول کلی گزارش"
-            placeholder="با کلیک بر روی عملگرها و فیلدهای زیر، فرمول کلی گزارش را بسازید..."
-          />
-        ) : (
-          <div className="bg-slate-950 text-emerald-400 p-4 rounded-2xl font-mono text-xs leading-relaxed border border-slate-800 overflow-x-auto text-left shadow-inner" dir="ltr">
-            {report.calculationFormula || '// فرمول محاسباتی تعریف نشده است'}
-          </div>
-        )}
-      </div>
-
-      {/* ۳. فیلدهای خروجی (بانک مرکزی فیلدها) */}
+      {/* ۲. فیلدهای خروجی گزارش (بانک مرکزی فیلدها) */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div className="flex flex-wrap justify-between items-center gap-2">
           <div>
@@ -809,17 +827,16 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         </div>
       </div>
 
-      {/* ۴. پیش‌نمایش و خروجی شبیه‌سازی‌شده گزارش (با تعامل روی فرمول‌ها) */}
+      {/* ۳. پیش‌نمایش و خروجی شبیه‌سازی‌شده گزارش (با تفکیک رنگ ستون‌های فرمول‌دار) */}
       <MockReportPreview
         reportTitle={isEditing ? editTitle : report.title}
         reportCode={report.reportCode}
         fields={isEditing ? editFields : (report.fields || [])}
         parameters={isEditing ? editParams : (report.parameters || [])}
-        reportCalculationFormula={isEditing ? editFormula : report.calculationFormula}
         onOpenFieldManager={() => setIsEditing(true)}
       />
 
-      {/* ۵. پارامترهای ورودی (متصل به بانک پارامترها) */}
+      {/* ۴. پارامترهای ورودی (متصل به بانک پارامترها) */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -904,47 +921,80 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* برچسب‌ها */}
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold text-slate-800 mb-2.5 flex items-center gap-2">
-            <TagIcon className="w-4 h-4 text-blue-500" />
-            برچسب‌های گزارش
-          </h3>
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+              <TagIcon className="w-4 h-4 text-blue-500" />
+              برچسب‌های گزارش
+            </h3>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {isEditing ? `${editTags.length} برچسب انتخاب‌شده` : `${report.tags.length} برچسب فعال`}
+            </span>
+          </div>
 
           {isEditing ? (
-            <div className="space-y-2">
-              <p className="text-[11px] text-slate-500">برچسب‌های مدنظر را از بانک برچسب‌های سامانه انتخاب فرمایید:</p>
-              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1">
-                {allSystemTags.map((tag) => {
-                  const isChecked = editTags.some((t) => t.tagId === tag.tagId);
-                  return (
-                    <button
-                      key={tag.tagId}
-                      type="button"
-                      onClick={() => toggleTagInReport(tag)}
-                      style={{
-                        backgroundColor: isChecked ? tag.colorHex : `${tag.colorHex}15`,
-                        color: isChecked ? '#fff' : tag.colorHex,
-                        borderColor: tag.colorHex,
-                      }}
-                      className={`text-xs font-bold px-3 py-1 rounded-xl border transition-all ${
-                        isChecked ? 'shadow-xs scale-105' : 'opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      #{tag.tagName}
-                    </button>
-                  );
-                })}
+            <div className="space-y-3">
+              {/* ایجاد سریع برچسب جدید */}
+              <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                <input
+                  type="text"
+                  value={newTagNameInput}
+                  onChange={(e) => setNewTagNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleQuickCreateTag();
+                    }
+                  }}
+                  placeholder="ایجاد برچسب جدید (مثلاً: مالی)..."
+                  className="flex-1 text-xs border border-slate-300 rounded-lg px-2.5 py-1 bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleQuickCreateTag}
+                  disabled={!newTagNameInput.trim() || isCreatingTag}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 shrink-0 shadow-2xs transition-all"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{isCreatingTag ? '...' : 'افزودن'}</span>
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-slate-500">برای تخصیص یا لغو تخصیص، روی برچسب‌های زیر کلیک فرمایید:</p>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50/50 rounded-xl border border-slate-100">
+                  {allSystemTags.map((tag) => {
+                    const isChecked = editTags.some((t) => t.tagId === tag.tagId);
+                    return (
+                      <button
+                        key={tag.tagId}
+                        type="button"
+                        onClick={() => toggleTagInReport(tag)}
+                        style={{
+                          backgroundColor: isChecked ? tag.colorHex : `${tag.colorHex}15`,
+                          color: isChecked ? '#fff' : tag.colorHex,
+                          borderColor: tag.colorHex,
+                        }}
+                        className={`text-xs font-bold px-3 py-1 rounded-xl border transition-all cursor-pointer ${
+                          isChecked ? 'shadow-xs scale-105 ring-2 ring-offset-1' : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        #{tag.tagName}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 min-h-12 items-center">
               {report.tags.length === 0 ? (
-                <p className="text-xs text-slate-400">برچسبی ثبت نشده است.</p>
+                <p className="text-xs text-slate-400">برچسبی به این گزارش تخصیص داده نشده است (جهت انتساب، دکمه ویرایش بالای صفحه را بزنید).</p>
               ) : (
                 report.tags.map((tag) => (
                   <span
                     key={tag.tagId}
                     style={{ backgroundColor: `${tag.colorHex}15`, color: tag.colorHex }}
-                    className="text-xs font-medium px-3 py-1 rounded-xl border border-current"
+                    className="text-xs font-bold px-3 py-1 rounded-xl border border-current shadow-2xs"
                   >
                     #{tag.tagName}
                   </span>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { User } from '../types';
 import { Database, LogIn, LogOut, Settings, ShieldCheck } from 'lucide-react';
 import { authApi } from '../api/client';
+import { APP_VERSION_LABEL } from '../config/version';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -64,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-lg text-slate-900 tracking-tight">K-RPT</span>
-                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded-full">نسخه ۱.۱</span>
+                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded-full">{APP_VERSION_LABEL}</span>
               </div>
               <p className="text-xs text-slate-500 font-medium">سامانه جامع مدیریت و تبارشناسی گزارش‌ها</p>
             </div>

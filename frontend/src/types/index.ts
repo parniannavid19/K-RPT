@@ -161,3 +161,42 @@ export interface DiffResponse {
   fieldDiffs: FieldDiffItem[];
   parameterDiffs: ParameterDiffItem[];
 }
+
+export interface MultiReportFieldPresence {
+  reportId: number;
+  reportCode: string;
+  reportTitle: string;
+  exists: boolean;
+  displayOrder: number;
+  customFormula?: string;
+  customNote?: string;
+}
+
+export interface MultiReportFieldDiff {
+  fieldId: number;
+  displayName: string;
+  technicalName?: string;
+  isCommonToAll: boolean;
+  hasFormulaDifference: boolean;
+  presence: MultiReportFieldPresence[];
+}
+
+export interface MultiReportParamPresence {
+  reportId: number;
+  reportCode: string;
+  exists: boolean;
+  isRequired?: boolean;
+  dataType?: string;
+}
+
+export interface MultiReportParamDiff {
+  parameterName: string;
+  isCommonToAll: boolean;
+  presence: MultiReportParamPresence[];
+}
+
+export interface MultiReportDiffResponse {
+  reports: ReportDetail[];
+  fieldDiffs: MultiReportFieldDiff[];
+  parameterDiffs: MultiReportParamDiff[];
+}

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "SP/gIw6fZwU=",
+  "dgSpecHash": "qMUTkag/O6I=",
   "success": true,
-  "projectFilePath": "D:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj",
+  "projectFilePath": "d:\\Ni Project\\K-RPT\\backend\\KRpt.Infrastructure\\KRpt.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\n.parnian\\.nuget\\packages\\azure.core\\1.41.0\\azure.core.1.41.0.nupkg.sha512",
     "C:\\Users\\n.parnian\\.nuget\\packages\\azure.identity\\1.12.1\\azure.identity.1.12.1.nupkg.sha512",

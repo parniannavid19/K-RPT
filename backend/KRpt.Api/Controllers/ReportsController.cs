@@ -254,12 +254,14 @@ public class ReportsController : ControllerBase
                 });
             }
 
-            // به‌روزرسانی تگ‌ها
+            // به‌روزرسانی تگ‌ها با اطمینان از مقداردهی کلید ترکیبی و عدم وجود شناسه تکراری
             _context.ReportTags.RemoveRange(report.ReportTags);
-            foreach (var tagId in dto.TagIds ?? new List<int>())
+            var distinctTagIds = (dto.TagIds ?? new List<int>()).Distinct().ToList();
+            foreach (var tagId in distinctTagIds)
             {
                 report.ReportTags.Add(new ReportTag
                 {
+                    ReportId = id,
                     TagId = tagId
                 });
             }
