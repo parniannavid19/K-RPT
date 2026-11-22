@@ -73,6 +73,7 @@ public class ReportsController : ControllerBase
                     DataType = rf.Field?.DataType ?? string.Empty,
                     DisplayOrder = rf.DisplayOrder,
                     CustomFormula = rf.CustomFormula,
+                    DefaultFormula = rf.Field?.DefaultFormula,
                     CustomNote = rf.CustomNote
                 }).ToList(),
             Parameters = report.Parameters

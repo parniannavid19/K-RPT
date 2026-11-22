@@ -111,6 +111,7 @@ public class ReportFieldItemDto
     public string DataType { get; set; } = string.Empty;
     public int DisplayOrder { get; set; }
     public string? CustomFormula { get; set; }
+    public string? DefaultFormula { get; set; }
     public string? CustomNote { get; set; }
 }
 

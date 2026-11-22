@@ -59,6 +59,7 @@ export interface ReportFieldItem {
   dataType: string;
   displayOrder: number;
   customFormula?: string;
+  defaultFormula?: string;
   customNote?: string;
 }
 
