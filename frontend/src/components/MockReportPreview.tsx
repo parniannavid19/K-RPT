@@ -422,8 +422,8 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
 
               {/* فرمول فیلد با فونت وزیرمتن و طراحی برجسته */}
               <div className="p-3 bg-white/95 border border-indigo-200 rounded-xl font-bold text-sm text-indigo-900 shadow-inner flex items-center justify-between select-all leading-relaxed">
-                <span>{activeFormula}</span>
-                <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full font-normal">
+                <span dir="auto" className="tracking-wide">{activeFormula}</span>
+                <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full font-normal shrink-0 mr-2">
                   فرمول محاسباتی فعال
                 </span>
               </div>

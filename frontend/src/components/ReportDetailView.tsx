@@ -753,14 +753,19 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
                           )}
                         </div>
                       ) : (
-                        <div>
-                          {field.customNote && <p>{field.customNote}</p>}
-                          {field.customFormula && (
-                            <code className="text-[10px] text-indigo-700 font-mono block mt-0.5" dir="ltr">
-                              {field.customFormula}
-                            </code>
+                        <div className="space-y-1">
+                          {field.customNote && (
+                            <p className="text-slate-600 text-xs">{field.customNote}</p>
                           )}
-                          {!field.customNote && !field.customFormula && '-'}
+                          {field.customFormula && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1.5 bg-indigo-50/90 text-indigo-700 border border-indigo-200/90 px-2.5 py-0.5 rounded-lg text-xs font-bold shadow-2xs" dir="auto">
+                                <span className="text-[10px] bg-indigo-600 text-white px-1 py-0.2 rounded font-mono font-bold">fx</span>
+                                <span>{field.customFormula}</span>
+                              </span>
+                            </div>
+                          )}
+                          {!field.customNote && !field.customFormula && <span className="text-slate-400">-</span>}
                         </div>
                       )}
                     </td>
