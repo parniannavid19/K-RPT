@@ -448,77 +448,61 @@ export const DiffView: React.FC<DiffViewProps> = ({
             </div>
           </div>
 
-          {/* ۳. جدول ماتریس مقایسه پارامترها و شروط ورودی */}
-          {diffData.parameterDiffs.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          {/* ۳. مشاهده و مقایسه فیلترها و شروط ورودی هر گزارش در کنار هم */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                <Filter className="w-4 h-4 text-blue-600" />
-                <span>ماتریس مقایسه پارامترها و فیلترهای ورودی</span>
+                <Filter className="w-4 h-4 text-indigo-600" />
+                <span>فیلترها و شروط ورودی هر گزارش (مشاهده در کنار هم)</span>
               </h3>
+              <span className="text-[10px] text-slate-400">
+                (تمرکز مقایسه ماتریسی سیستم بر روی فیلدهای خروجی و ستون‌هاست)
+              </span>
+            </div>
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-right text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-[11px] font-bold">
-                      <th className="py-3 px-3">نام پارامتر</th>
-                      <th className="py-3 px-3 text-center">وضعیت</th>
-                      {diffData.reports.map((rep, rIdx) => {
-                        const palette = REPORT_PALETTE[rIdx % REPORT_PALETTE.length];
-                        return (
-                          <th key={rep.reportId} className={`py-3 px-3 text-center border-r border-slate-200/80 ${palette.bg}`}>
-                            کد {rep.reportCode}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {diffData.parameterDiffs.map((pd) => (
-                      <tr key={pd.parameterName} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-2.5 px-3 font-bold text-slate-800">{pd.parameterName}</td>
-                        <td className="py-2.5 px-3 text-center">
-                          {pd.isCommonToAll ? (
-                            <span className="text-emerald-700 bg-emerald-50 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                              مشترک در همه
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 bg-slate-100 text-[10px] px-2 py-0.5 rounded-full">
-                              اختصاصی
-                            </span>
-                          )}
-                        </td>
-                        {pd.presence.map((p) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {diffData.reports.map((rep, rIdx) => {
+                const palette = REPORT_PALETTE[rIdx % REPORT_PALETTE.length];
+                const params = rep.parameters || [];
+
+                return (
+                  <div key={rep.reportId} className={`rounded-2xl border p-3.5 space-y-2.5 ${palette.border} ${palette.bg}`}>
+                    <div className="flex items-center justify-between border-b pb-2 border-slate-200/60">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${palette.badge}`}>
+                        کد {rep.reportCode}
+                      </span>
+                      <span className="text-xs font-bold text-slate-800 truncate max-w-44" title={rep.title}>
+                        {rep.title}
+                      </span>
+                    </div>
+
+                    {params.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 py-3 text-center">فاقد فیلتر ورودی</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {params.map((p, pI) => {
                           const ctrlOpt = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === p.uiControlType);
                           return (
-                            <td key={p.reportId} className="py-2.5 px-3 text-center border-r border-slate-100">
-                              {p.exists ? (
-                                <div className="space-y-1">
-                                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold">
-                                    <Check className="w-3.5 h-3.5" />
-                                    {p.isRequired ? 'اجباری' : 'اختیاری'}
-                                  </span>
-                                  {ctrlOpt && (
-                                    <div>
-                                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.2">
-                                        <span>{ctrlOpt.icon}</span>
-                                        <span>{ctrlOpt.label}</span>
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-slate-300">-</span>
-                              )}
-                            </td>
+                            <div key={pI} className="flex items-center justify-between text-xs bg-white/90 p-2 rounded-xl border border-slate-200/70 shadow-2xs">
+                              <div className="flex items-center gap-1.5">
+                                {ctrlOpt && <span>{ctrlOpt.icon}</span>}
+                                <span className="font-bold text-slate-800 text-[11px]">{p.parameterName}</span>
+                              </div>
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                                p.isRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {p.isRequired ? 'اجباری' : 'اختیاری'}
+                              </span>
+                            </div>
                           );
                         })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

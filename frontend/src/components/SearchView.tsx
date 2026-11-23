@@ -214,7 +214,7 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectReport, fieldBan
             >
               <option value="">همه وضعیت‌ها</option>
               <option value="1">در انتظار بررسی</option>
-              <option value="2">در حال تکمیل</option>
+              <option value="2">قابل بررسی</option>
               <option value="3">تایید شده</option>
             </select>
           </div>

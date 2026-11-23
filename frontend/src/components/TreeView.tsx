@@ -19,6 +19,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react';
 import { treeApi } from '../api/client';
 
@@ -98,6 +99,8 @@ export const TreeView: React.FC<TreeViewProps> = ({
   onTreeChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  type StatusFilterType = 3 | 2 | 1 | 'locked' | null;
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>(null);
   const [openNodes, setOpenNodes] = useState<Record<number, boolean>>({ 3: true });
   const [showAddModal, setShowAddModal] = useState(false);
   const [itemType, setItemType] = useState<1 | 2>(1); // 1: ماژول, 2: گزارش
@@ -210,14 +213,39 @@ export const TreeView: React.FC<TreeViewProps> = ({
     setOpenNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  const filterTree = (list: TreeNode[], term: string): TreeNode[] => {
-    if (!term.trim()) return list;
+  const filterTree = (list: TreeNode[], term: string, sFilter: StatusFilterType): TreeNode[] => {
+    const hasTerm = Boolean(term.trim());
+    const hasStatus = sFilter !== null;
+
+    if (!hasTerm && !hasStatus) return list;
+
+    const lowerTerm = term.toLowerCase().trim();
+
     return list
       .map((node) => {
-        const matches = node.title.toLowerCase().includes(term.toLowerCase()) ||
-          (node.reportCode && node.reportCode.toLowerCase().includes(term.toLowerCase()));
-        const children = node.children ? filterTree(node.children, term) : [];
-        if (matches || children.length > 0) {
+        const textMatches = !hasTerm ||
+          node.title.toLowerCase().includes(lowerTerm) ||
+          (Boolean(node.reportCode) && node.reportCode!.toLowerCase().includes(lowerTerm));
+
+        let statusMatches = true;
+        if (hasStatus) {
+          if (node.nodeType === 2) {
+            if (sFilter === 'locked') {
+              statusMatches = Boolean(node.isLocked);
+            } else {
+              statusMatches = node.status === sFilter;
+            }
+          } else {
+            statusMatches = false;
+          }
+        }
+
+        const isLeafReport = node.nodeType === 2;
+        const matchesThis = isLeafReport ? (textMatches && statusMatches) : (textMatches && !hasStatus);
+
+        const children = node.children ? filterTree(node.children, term, sFilter) : [];
+
+        if (matchesThis || children.length > 0) {
           return { ...node, children };
         }
         return null;
@@ -225,11 +253,13 @@ export const TreeView: React.FC<TreeViewProps> = ({
       .filter(Boolean) as TreeNode[];
   };
 
-  const filteredNodes = filterTree(nodes, searchTerm);
+  const filteredNodes = useMemo(() => {
+    return filterTree(nodes, searchTerm, statusFilter);
+  }, [nodes, searchTerm, statusFilter]);
 
-  // شمارش تعداد گزارش‌های منطبق با جستجو
+  // شمارش تعداد گزارش‌های منطبق با جستجو یا فیلتر وضعیت
   const matchingCount = useMemo(() => {
-    if (!searchTerm.trim()) return null;
+    if (!searchTerm.trim() && statusFilter === null) return null;
     const countReports = (list: TreeNode[]): number => {
       let count = 0;
       for (const item of list) {
@@ -239,7 +269,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
       return count;
     };
     return countReports(filteredNodes);
-  }, [filteredNodes, searchTerm]);
+  }, [filteredNodes, searchTerm, statusFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -405,7 +435,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
 
   const renderNode = (node: TreeNode, depth = 0) => {
     const isFolder = node.nodeType === 1;
-    const isOpen = openNodes[node.nodeId] ?? (searchTerm.length > 0);
+    const isOpen = openNodes[node.nodeId] ?? (searchTerm.length > 0 || statusFilter !== null);
     const isSelected = !isFolder && node.reportId === selectedReportId;
 
     return (
@@ -454,6 +484,11 @@ export const TreeView: React.FC<TreeViewProps> = ({
                 {node.status === 3 && (
                   <span title="بررسی و تایید شده" className="text-emerald-600 shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5" />
+                  </span>
+                )}
+                {node.status === 2 && (
+                  <span title="قابل بررسی" className="text-blue-600 shrink-0">
+                    <Edit3 className="w-3.5 h-3.5" />
                   </span>
                 )}
                 {node.status === 1 && (
@@ -513,7 +548,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
   return (
     <aside
       style={{ width: `${sidebarWidth}px` }}
-      className={`relative bg-white border-l border-slate-200 flex flex-col h-[calc(100vh-4rem)] shrink-0 transition-[width] duration-75 select-none ${
+      className={`relative bg-white border-l border-slate-200 flex flex-col h-full shrink-0 transition-[width] duration-75 select-none ${
         isResizing ? 'cursor-col-resize' : ''
       }`}
     >
@@ -590,23 +625,110 @@ export const TreeView: React.FC<TreeViewProps> = ({
             در حال بارگذاری ساختار درختی...
           </div>
         ) : filteredNodes.length === 0 ? (
-          <div className="text-center py-8 text-slate-400 text-xs">گزارشی با این عنوان یافت نشد.</div>
+          <div className="text-center py-8 text-slate-400 text-xs space-y-2">
+            <p>گزارشی با این مشخصات یافت نشد.</p>
+            {(statusFilter !== null || Boolean(searchTerm.trim())) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter(null);
+                }}
+                className="text-[11px] text-blue-600 hover:underline font-bold"
+              >
+                پاک‌کردن فیلترها و نمایش همه
+              </button>
+            )}
+          </div>
         ) : (
           filteredNodes.map((node) => renderNode(node))
         )}
       </div>
 
-      {/* راهنمای وضعیت پایین پنل */}
-      <div className="p-2.5 border-t border-slate-100 bg-slate-50/50 text-[11px] text-slate-500 flex justify-between">
-        <span className="flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> تایید شده
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3 text-amber-500" /> در انتظار
-        </span>
-        <span className="flex items-center gap-1">
-          <Lock className="w-3 h-3 text-rose-500" /> قفل
-        </span>
+      {/* راهنمای وضعیت پایین پنل (چسبیده به انتهای صفحه با امکان فیلتر و کلیر) */}
+      <div className="mt-auto border-t border-slate-200 bg-slate-50/95 shrink-0 select-none">
+        {/* نوار کوچک اطلاع‌رسانی فیلتر فعال به همراه دکمه کلیر کردن برای نمایش همه */}
+        {statusFilter !== null && (
+          <div className="flex items-center justify-between px-3 py-1 bg-indigo-50 border-b border-indigo-100 text-[10px] text-indigo-900 animate-in fade-in duration-150">
+            <span className="flex items-center gap-1 font-medium">
+              <span>فیلتر:</span>
+              <span className="font-bold">
+                {statusFilter === 3 && 'تایید شده'}
+                {statusFilter === 2 && 'قابل بررسی'}
+                {statusFilter === 1 && 'در انتظار'}
+                {statusFilter === 'locked' && 'قفل شده'}
+              </span>
+              <span className="text-slate-500">({matchingCount ?? 0} مورد)</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setStatusFilter(null)}
+              className="text-indigo-700 hover:text-rose-600 font-bold flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white transition-colors cursor-pointer"
+              title="پاک‌کردن فیلتر و نمایش همه گزارش‌ها"
+            >
+              <X className="w-3 h-3 text-rose-500" />
+              <span>نمایش همه</span>
+            </button>
+          </div>
+        )}
+
+        <div className="p-2 text-[10px] flex items-center justify-between gap-1">
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 3 ? null : 3)}
+            title="فیلتر گزارش‌های تایید شده (کلیک مجدد: نمایش همه)"
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+              statusFilter === 3
+                ? 'bg-emerald-100 text-emerald-800 font-bold border-emerald-300 shadow-2xs'
+                : 'border-transparent text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span>تایید شده</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 2 ? null : 2)}
+            title="فیلتر گزارش‌های قابل بررسی (کلیک مجدد: نمایش همه)"
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+              statusFilter === 2
+                ? 'bg-blue-100 text-blue-800 font-bold border-blue-300 shadow-2xs'
+                : 'border-transparent text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <Edit3 className="w-3 h-3 text-blue-600" />
+            <span>قابل بررسی</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 1 ? null : 1)}
+            title="فیلتر گزارش‌های در انتظار (کلیک مجدد: نمایش همه)"
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+              statusFilter === 1
+                ? 'bg-amber-100 text-amber-800 font-bold border-amber-300 shadow-2xs'
+                : 'border-transparent text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <Clock className="w-3 h-3 text-amber-500" />
+            <span>در انتظار</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'locked' ? null : 'locked')}
+            title="فیلتر گزارش‌های قفل شده (کلیک مجدد: نمایش همه)"
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+              statusFilter === 'locked'
+                ? 'bg-rose-100 text-rose-800 font-bold border-rose-300 shadow-2xs'
+                : 'border-transparent text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <Lock className="w-3 h-3 text-rose-500" />
+            <span>قفل</span>
+          </button>
+        </div>
       </div>
 
       {/* مدال افزودن ماژول / گزارش جدید به درخت */}

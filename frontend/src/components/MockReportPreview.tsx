@@ -4,6 +4,7 @@ import {
   Calculator,
   Calendar,
   Check,
+  Clock,
   Copy,
   Download,
   FileSpreadsheet,
@@ -22,6 +23,144 @@ interface MockReportPreviewProps {
   parameters?: ReportParameterItem[];
   onOpenFieldManager?: () => void;
 }
+
+interface TriStateCheckboxProps {
+  label: string;
+  customOptions?: string[];
+}
+
+export const TriStateCheckbox: React.FC<TriStateCheckboxProps> = ({ label, customOptions = [] }) => {
+  // states: 'indeterminate' (مربع پر) -> 'checked' (تیک) -> 'unchecked' (خالی)
+  const [state, setState] = useState<'indeterminate' | 'checked' | 'unchecked'>('indeterminate');
+
+  const toggle = () => {
+    if (state === 'indeterminate') setState('checked');
+    else if (state === 'checked') setState('unchecked');
+    else setState('indeterminate');
+  };
+
+  const labelIndeterminate = customOptions[2] || 'همه موارد (بی‌تفاوت)';
+  const labelChecked = customOptions[0] || 'فقط بله (تیک)';
+  const labelUnchecked = customOptions[1] || 'فقط خیر (خالی)';
+
+  return (
+    <div
+      onClick={toggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggle();
+        }
+      }}
+      title="کلیک برای تغییر وضعیت ۳ حالته: مربع پر (همه) ⟵ تیک (بله) ⟵ خالی (خیر)"
+      className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-2xs cursor-pointer select-none"
+    >
+      {/* جعبه چک‌باکس با ظاهر کاملاً مطابق با استانداردهای ویندوز/ERP */}
+      <div
+        className={`w-4 h-4 rounded-xs flex items-center justify-center transition-all ${
+          state === 'checked'
+            ? 'bg-blue-600 border border-blue-700 shadow-2xs'
+            : state === 'indeterminate'
+            ? 'border-2 border-slate-800 bg-white'
+            : 'border-2 border-slate-400 bg-white hover:border-slate-600'
+        }`}
+      >
+        {state === 'checked' && (
+          <Check className="w-3 h-3 text-white stroke-[3]" />
+        )}
+        {state === 'indeterminate' && (
+          <div className="w-2 h-2 bg-slate-900 rounded-2xs" />
+        )}
+      </div>
+
+      <span className="text-xs font-bold text-slate-800">{label}</span>
+
+      <span
+        className={`text-[10px] px-2 py-0.5 rounded-md font-medium border transition-colors ${
+          state === 'indeterminate'
+            ? 'bg-slate-100 text-slate-700 border-slate-200'
+            : state === 'checked'
+            ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold'
+            : 'bg-rose-50 text-rose-700 border-rose-200 font-bold'
+        }`}
+      >
+        {state === 'indeterminate' && `⏹️ ${labelIndeterminate}`}
+        {state === 'checked' && `✓ ${labelChecked}`}
+        {state === 'unchecked' && `◻️ ${labelUnchecked}`}
+      </span>
+    </div>
+  );
+};
+
+// منوی کشویی وابسته به تیک چک‌باکس (با الهام از نرم‌افزارهای ERP)
+export const CheckboxDropdownFilter: React.FC<{ label: string; options: string[] }> = ({ label, options }) => {
+  const [enabled, setEnabled] = useState(false);
+  const dropOptions = options.length > 0 ? options : ['صندوق‌دار شماره ۱', 'صندوق‌دار شماره ۲', 'کلیه صندوق‌ها'];
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5 text-xs min-w-48">
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+          className="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer"
+        />
+        <span className="font-bold text-slate-800 text-xs">{label}</span>
+      </label>
+
+      <div className="pt-0.5">
+        <select
+          disabled={!enabled}
+          className={`w-full text-xs rounded-lg px-2.5 py-1.5 border transition-all ${
+            enabled
+              ? 'bg-white border-blue-400 text-slate-800 shadow-2xs font-medium cursor-pointer'
+              : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+          }`}
+        >
+          {dropOptions.map((opt, i) => (
+            <option key={i} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+// گروه چک‌باکس با امکان چیدمان روی هم (عمودی) یا کنار هم (افقی) و عنوان اختیاری
+export const CheckboxGroupFilter: React.FC<{ title?: string; options: string[]; isVertical: boolean }> = ({ title, options, isVertical }) => {
+  const hasValidTitle = Boolean(
+    title &&
+    !title.startsWith('فیلتر بدون عنوان') &&
+    !title.startsWith('فیلتر') &&
+    !title.includes('(بدون عنوان)')
+  );
+  const checkOptions = options.length > 0 ? options : ['نمایش سرجمع‌های صفر', 'نمایش ردیف‌های صفر', 'نمایش جزییات'];
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5 text-xs">
+      {hasValidTitle && (
+        <span className="font-bold text-slate-700 text-[11px] block border-b pb-1 border-slate-100">
+          {title}:
+        </span>
+      )}
+      <div className={isVertical ? 'flex flex-col gap-2 pt-0.5' : 'flex flex-wrap items-center gap-3'}>
+        {checkOptions.map((opt, i) => (
+          <label key={i} className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-indigo-600 select-none">
+            <input
+              type="checkbox"
+              defaultChecked={false}
+              className="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer border-slate-300"
+            />
+            <span className="text-xs font-medium">{opt}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
   reportTitle,
@@ -306,9 +445,86 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
           <div className="flex flex-wrap items-center gap-2.5 pt-1">
             {parameters.map((p) => {
               const ctrlType = p.uiControlType || 'text';
-              const options = p.controlConfigJson
-                ? p.controlConfigJson.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
+              const isVertical = p.controlConfigJson?.includes('#vertical') ?? false;
+              const rawConfig = p.controlConfigJson?.replace(/#vertical#?/g, '').trim() || '';
+              const options = rawConfig
+                ? rawConfig.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
                 : [];
+
+              if (ctrlType === 'datetime_range') {
+                return (
+                  <div key={p.parameterId} className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 text-[11px] border-b pb-1 border-slate-100">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>{p.parameterName || 'دوره زمانی'}:</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      {/* ردیف از تاریخ و زمان */}
+                      <div className="flex items-center justify-between gap-3 bg-slate-50/70 p-1 rounded-lg border border-slate-200">
+                        <span className="text-[11px] text-slate-700 font-medium shrink-0">از تاریخ :</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              defaultValue="1405/09/02"
+                              className="w-24 text-[11px] font-mono text-center bg-white border border-slate-300 rounded px-1.5 py-0.5"
+                            />
+                            <span className="text-[9px] text-slate-400 absolute left-1">▼</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              defaultValue="12:00:00 AM"
+                              className="w-24 text-[11px] font-mono text-center bg-white border border-slate-300 rounded px-1.5 py-0.5"
+                            />
+                            <span className="text-[8px] text-slate-400 absolute left-1 flex flex-col leading-none">
+                              <span>▲</span>
+                              <span>▼</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ردیف تا تاریخ و زمان */}
+                      <div className="flex items-center justify-between gap-3 bg-slate-50/70 p-1 rounded-lg border border-slate-200">
+                        <span className="text-[11px] text-slate-700 font-medium shrink-0">تا تاریخ :</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              defaultValue="1405/09/02"
+                              className="w-24 text-[11px] font-mono text-center bg-white border border-slate-300 rounded px-1.5 py-0.5"
+                            />
+                            <span className="text-[9px] text-slate-400 absolute left-1">▼</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              defaultValue="11:59:59 PM"
+                              className="w-24 text-[11px] font-mono text-center bg-white border border-slate-300 rounded px-1.5 py-0.5"
+                            />
+                            <span className="text-[8px] text-slate-400 absolute left-1 flex flex-col leading-none">
+                              <span>▲</span>
+                              <span>▼</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'datetime') {
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <input type="text" defaultValue="1405/09/02" className="w-20 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5" />
+                    <input type="text" defaultValue="12:00:00" className="w-18 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5" />
+                  </div>
+                );
+              }
 
               if (ctrlType === 'date_range') {
                 return (
@@ -348,40 +564,54 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
                 );
               }
 
+              if (ctrlType === 'checkbox_dropdown') {
+                return (
+                  <CheckboxDropdownFilter
+                    key={p.parameterId}
+                    label={p.parameterName || 'بر اساس فیلتر'}
+                    options={options}
+                  />
+                );
+              }
+
+              if (ctrlType === 'tristate_checkbox') {
+                return (
+                  <TriStateCheckbox
+                    key={p.parameterId}
+                    label={p.parameterName}
+                    customOptions={options}
+                  />
+                );
+              }
+
+              if (ctrlType === 'checkbox') {
+                return (
+                  <CheckboxGroupFilter
+                    key={p.parameterId}
+                    title={p.parameterName}
+                    options={options}
+                    isVertical={isVertical}
+                  />
+                );
+              }
+
               if (ctrlType === 'radio') {
                 const radioOptions = options.length > 0 ? options : ['گزینه ۱', 'گزینه ۲'];
                 return (
-                  <div key={p.parameterId} className="flex items-center gap-2 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
-                    <div className="flex items-center gap-2.5">
+                  <div key={p.parameterId} className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5 text-xs">
+                    {p.parameterName && (
+                      <span className="font-bold text-slate-700 text-[11px] block border-b pb-1 border-slate-100">
+                        {p.parameterName}:
+                      </span>
+                    )}
+                    <div className={isVertical ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-center gap-2.5'}>
                       {radioOptions.map((opt, i) => (
-                        <label key={i} className="flex items-center gap-1 text-[11px] cursor-pointer text-slate-700 hover:text-indigo-600">
+                        <label key={i} className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-700 hover:text-indigo-600 select-none">
                           <input
                             type="radio"
                             name={`filter_radio_${p.parameterId}`}
                             defaultChecked={i === 0}
                             className="text-indigo-600 focus:ring-0"
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-
-              if (ctrlType === 'checkbox') {
-                const checkOptions = options.length > 0 ? options : ['همه'];
-                return (
-                  <div key={p.parameterId} className="flex items-center gap-2 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
-                    <div className="flex items-center gap-2.5">
-                      {checkOptions.map((opt, i) => (
-                        <label key={i} className="flex items-center gap-1 text-[11px] cursor-pointer text-slate-700 hover:text-indigo-600">
-                          <input
-                            type="checkbox"
-                            defaultChecked={i === 0}
-                            className="rounded text-indigo-600 focus:ring-0"
                           />
                           <span>{opt}</span>
                         </label>

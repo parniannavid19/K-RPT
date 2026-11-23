@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl font-medium flex items-center gap-1.5 transition-colors border border-slate-200 shadow-2xs active:scale-95"
               >
                 <Database className="w-4 h-4 text-slate-500" />
-                <span>بانک فیلدها و پارامترها</span>
+                <span>بانک مرکزی فیلدها</span>
               </button>
 
               {/* دکمه تنظیمات مخصوص مدیر سیستم (Admin) با دکمه و نشان اختصاصی */}

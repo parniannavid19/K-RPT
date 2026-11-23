@@ -66,11 +66,15 @@ export type UiControlType =
   | 'text'
   | 'date'
   | 'date_range'
+  | 'datetime'
+  | 'datetime_range'
   | 'number'
   | 'number_range'
   | 'radio'
   | 'checkbox'
+  | 'tristate_checkbox'
   | 'dropdown'
+  | 'checkbox_dropdown'
   | 'boolean';
 
 export interface UiControlTypeOption {
@@ -85,9 +89,13 @@ export interface UiControlTypeOption {
 export const UI_CONTROL_TYPE_OPTIONS: UiControlTypeOption[] = [
   { value: 'text', label: 'متن آزاد', icon: '📝', description: 'ورودی متنی ساده', hasOptions: false, example: 'شرح سند، کلمه کلیدی' },
   { value: 'date_range', label: 'بازه تاریخ (از - تا)', icon: '📅', description: 'محدوده تاریخ شمسی با تقویم', hasOptions: false, example: 'از تاریخ ... تا تاریخ ...' },
+  { value: 'datetime_range', label: 'بازه تاریخ و ساعت (از - تا)', icon: '⏰', description: 'محدوده تاریخ به همراه ساعت و دقیقه (AM/PM)', hasOptions: false, example: 'از تاریخ و ساعت ... تا تاریخ و ساعت ...' },
   { value: 'date', label: 'تک تاریخ', icon: '📆', description: 'انتخاب یک تاریخ مشخص', hasOptions: false, example: 'تا تاریخ معین، تاریخ ثبت' },
+  { value: 'datetime', label: 'تک تاریخ و ساعت', icon: '⏱️', description: 'انتخاب یک تاریخ به همراه زمان معین', hasOptions: false, example: 'تاریخ و ساعت ثبت سند' },
+  { value: 'checkbox_dropdown', label: 'منوی کشویی با فعال‌ساز چک‌باکس', icon: '☑️🔽', description: 'منوی انتخابی که با زدن تیک فعال می‌شود', hasOptions: true, example: 'بر اساس صندوق‌دار (صندوق ۱, صندوق ۲)' },
+  { value: 'tristate_checkbox', label: 'چک‌باکس ۳ حالته (خالی / تیک / مربع)', icon: '⏹️', description: 'دارای ۳ حالت: خالی (خیر)، تیک (بله)، مربع پر (بی‌تفاوت / همه)', hasOptions: false, example: 'اسناد اتوماتیک، وضعیت تسویه' },
   { value: 'radio', label: 'رادیوباتن (تک‌انتخابی)', icon: '🔘', description: 'انتخاب یک گزینه از بین گزینه‌های ثابت', hasOptions: true, example: 'رسمی, غیررسمی' },
-  { value: 'checkbox', label: 'چک‌باکس (چندانتخابی)', icon: '☑️', description: 'انتخاب یک یا چند گزینه هم‌زمان', hasOptions: true, example: 'پیش‌نویس, تاییدشده, نهایی' },
+  { value: 'checkbox', label: 'چک‌باکس (چندانتخابی / گروهی)', icon: '☑️', description: 'انتخاب یک یا چند گزینه هم‌زمان (افقی یا عمودی)', hasOptions: true, example: 'نمایش سرجمع‌های صفر, نمایش ردیف‌های صفر, نمایش جزییات' },
   { value: 'dropdown', label: 'منوی کشویی (Dropdown)', icon: '🔽', description: 'لیست بازشونده از مقادیر', hasOptions: true, example: 'نقدی, اعتباری, چکی' },
   { value: 'number_range', label: 'بازه عددی / ریالی (از - تا)', icon: '🔢', description: 'تعیین کف و سقف مقدار عددی', hasOptions: false, example: 'از مبلغ ... تا مبلغ ...' },
   { value: 'number', label: 'عددی ساده', icon: '🔢', description: 'ورودی عددی تک‌مقداری', hasOptions: false, example: 'حداقل تعداد' },

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { FieldBankItem, ParameterBankItem, ReportDetail, Tag, User } from '../types';
+import type { FieldBankItem, ReportDetail, Tag, User } from '../types';
 import { UI_CONTROL_TYPE_OPTIONS } from '../types';
-import { fieldBankApi, parameterBankApi, reportsApi, tagsApi } from '../api/client';
+import { fieldBankApi, reportsApi, tagsApi } from '../api/client';
 import { FormulaBuilder } from './FormulaBuilder';
 import { MockReportPreview } from './MockReportPreview';
 import { useToast } from './Toast';
@@ -37,7 +37,6 @@ interface ReportDetailViewProps {
   onRefresh: () => void;
   onCompareWith: (reportId: number) => void;
   isLoading: boolean;
-  onReportDeleted?: () => void;
   moduleTitle?: string;
   fieldBankVersion?: number;
 }
@@ -48,7 +47,6 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   onRefresh,
   onCompareWith,
   isLoading,
-  onReportDeleted,
   moduleTitle,
   fieldBankVersion,
 }) => {
@@ -56,6 +54,9 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const prevReportIdRef = useRef<number | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+  const currentReportIdRef = useRef<number | null>(null);
+  const isEditingRef = useRef<boolean>(false);
 
   // حالت‌های ویرایش
   const [editTitle, setEditTitle] = useState('');
@@ -70,12 +71,18 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   const [newTagNameInput, setNewTagNameInput] = useState('');
   const [isCreatingTag, setIsCreatingTag] = useState(false);
 
-  // بانک‌های مرکزی جهت انتخاب
+  // بانک‌های مرکزی جهت انتخاب فیلدها و تگ‌ها
   const [availableBankFields, setAvailableBankFields] = useState<FieldBankItem[]>([]);
   const [selectedBankFieldId, setSelectedBankFieldId] = useState<number | ''>('');
-  const [availableBankParams, setAvailableBankParams] = useState<ParameterBankItem[]>([]);
-  const [selectedBankParamId, setSelectedBankParamId] = useState<number | ''>('');
   const [allSystemTags, setAllSystemTags] = useState<Tag[]>([]);
+
+  // ایجاد مستقیم پارامتر / فیلتر جدید در همین گزارش
+  const [newParamType, setNewParamType] = useState<string>('date_range');
+  const [newParamName, setNewParamName] = useState<string>('');
+  const [newParamOptions, setNewParamOptions] = useState<string>('');
+  const [newParamLayout, setNewParamLayout] = useState<'vertical' | 'horizontal'>('vertical');
+  const [newParamIsRequired, setNewParamIsRequired] = useState<boolean>(false);
+  const [newParamDesc, setNewParamDesc] = useState<string>('');
 
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [fieldFilterText, setFieldFilterText] = useState('');
@@ -95,9 +102,52 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [formulaEditingFieldIndex]);
 
+  // همگام‌سازی مراجع برای آزادسازی در زمان خروج یا تغییر گزارش
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  useEffect(() => {
+    currentReportIdRef.current = report?.reportId || null;
+  }, [report?.reportId]);
+
+  // آزادسازی خودکار قفل در صورت بستن مرورگر یا رفرش تب
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isEditingRef.current && currentSessionIdRef.current && currentReportIdRef.current) {
+        navigator.sendBeacon?.(`/api/reports/${currentReportIdRef.current}/unlock?sessionId=${currentSessionIdRef.current}`);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // آزادسازی قفل در زمان آن‌مانت شدن کامپوننت
+  useEffect(() => {
+    return () => {
+      if (isEditingRef.current && currentSessionIdRef.current && currentReportIdRef.current) {
+        reportsApi.unlock(currentReportIdRef.current, currentSessionIdRef.current).catch(() => {});
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (report) {
       const isDifferentReport = prevReportIdRef.current !== report.reportId;
+
+      // اگر کاربر در حال ویرایش گزارش قبلی بود و گزارش جدیدی از درختواره انتخاب کرد، قفل گزارش قبلی آزاد شود
+      if (isDifferentReport && isEditingRef.current && currentSessionIdRef.current && prevReportIdRef.current) {
+        reportsApi.unlock(prevReportIdRef.current, currentSessionIdRef.current).catch(() => {});
+        setCurrentSessionId(null);
+        currentSessionIdRef.current = null;
+        setIsEditing(false);
+        isEditingRef.current = false;
+      }
+
       prevReportIdRef.current = report.reportId;
 
       setEditTitle(report.title);
@@ -147,23 +197,23 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   useEffect(() => {
     if (isEditing) {
       fieldBankApi.getAll().then(setAvailableBankFields);
-      parameterBankApi.getAll().then(setAvailableBankParams);
       tagsApi.getAll().then(setAllSystemTags);
     }
   }, [isEditing]);
 
-  // پالس ضربان قلب (Heartbeat) برای تمدید قفل به صورت خودکار هر ۶۰ ثانیه
+  // پالس ضربان قلب (Heartbeat) برای تمدید قفل به صورت خودکار هر ۶۰ ثانیه در حین ویرایش فعال
   useEffect(() => {
-    if (!report || !currentSessionId || !currentUser) return;
+    if (!report || !currentSessionId || !currentUser || !isEditing) return;
 
     const interval = setInterval(() => {
       reportsApi.heartbeat(report.reportId, currentSessionId).catch(() => {
         setCurrentSessionId(null);
+        currentSessionIdRef.current = null;
       });
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [report, currentSessionId, currentUser]);
+  }, [report, currentSessionId, currentUser, isEditing]);
 
   if (isLoading) {
     return (
@@ -196,38 +246,80 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     );
   }
 
-  const isLockedByMe = report.isLocked && currentUser && report.lockedByUserId === currentUser.userId;
   const isLockedByOther = report.isLocked && (!currentUser || report.lockedByUserId !== currentUser.userId);
   const canEdit = currentUser && (currentUser.roleId === 2 || currentUser.roleId === 3);
 
-  const handleLock = async () => {
+  // شروع ویرایش به همراه قفل‌گذاری خودکار گزارش به نام کاربر جاری
+  const handleStartEdit = async () => {
     if (!currentUser) {
       showToast('لطفاً ابتدا وارد سیستم شوید.', 'error');
       return;
     }
+    if (isLockedByOther) {
+      showToast(`این گزارش توسط "${report.lockedByUserName}" در حال ویرایش است`, 'error');
+      return;
+    }
+
     setActionLoading(true);
     try {
       const res = await reportsApi.lock(report.reportId);
       setCurrentSessionId(res.sessionId);
-      showToast('گزارش با موفقیت قفل و آماده کار شد.', 'success');
+      currentSessionIdRef.current = res.sessionId;
+      setIsEditing(true);
+      isEditingRef.current = true;
+      showToast('گزارش با موفقیت برای شما قفل شد و در وضعیت ویرایش قرار گرفت.', 'success');
       onRefresh();
     } catch (err: any) {
       const msg = err.response?.data?.message || 
-        (err.response?.status === 401 ? 'نشست کاربری منقضی شده بود؛ لطفاً مجدداً دکمه قفل را بزنید.' : '') ||
-        (err.response?.status === 403 ? 'دسترسی مجاز برای قفل‌گذاری این گزارش وجود ندارد.' : '') ||
-        'خطا در تخصیص قفل';
+        (err.response?.status === 409
+          ? `این گزارش توسط "${report.lockedByUserName || 'کاربر دیگر'}" در حال ویرایش است`
+          : 'خطا در فعال‌سازی ویرایش و تخصیص قفل گزارش');
       showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleUnlock = async () => {
+  // انصراف از ویرایش و آزادسازی خودکار قفل گزارش
+  const handleCancelEdit = async () => {
     setActionLoading(true);
     try {
-      await reportsApi.unlock(report.reportId, currentSessionId || undefined, currentUser?.roleId === 3);
+      const activeSession = currentSessionId || currentSessionIdRef.current;
+      if (activeSession) {
+        await reportsApi.unlock(report.reportId, activeSession);
+      }
+    } catch (err) {
+      console.warn('Could not release lock on cancel:', err);
+    } finally {
       setCurrentSessionId(null);
-      showToast('قفل گزارش آزاد شد.', 'info');
+      currentSessionIdRef.current = null;
+      setIsEditing(false);
+      isEditingRef.current = false;
+
+      // بازگردانی مقادیر به حالت پیشین
+      if (report) {
+        setEditTitle(report.title);
+        setEditDesc(report.functionalDescription || '');
+        setEditSqlQuery(report.sqlQuery || '');
+        setEditFields(report.fields || []);
+        setEditParams(report.parameters || []);
+        setEditTags(report.tags || []);
+      }
+      setActionLoading(false);
+      showToast('ویرایش لغو و قفل گزارش آزاد شد.', 'info');
+      onRefresh();
+    }
+  };
+
+  // آزادسازی اضطراری قفل صرفاً توسط مدیر سیستم (SystemAdmin)
+  const handleAdminForceUnlock = async () => {
+    if (!window.confirm(`آیا از شکستن اضطراری قفل کاربر «${report.lockedByUserName}» توسط مدیر سیستم اطمینان دارید؟`)) return;
+    setActionLoading(true);
+    try {
+      await reportsApi.unlock(report.reportId, undefined, true);
+      setCurrentSessionId(null);
+      currentSessionIdRef.current = null;
+      showToast('قفل گزارش توسط ادمین با موفقیت آزاد شد.', 'info');
       onRefresh();
     } catch (err: any) {
       showToast(err.response?.data?.message || 'خطا در آزادسازی قفل', 'error');
@@ -245,20 +337,6 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       onRefresh();
     } catch (err: any) {
       showToast(err.response?.data?.message || 'خطا در تایید گزارش', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeleteReport = async () => {
-    if (!window.confirm(`آیا از حذف کامل گزارش «${report.title}» (${report.reportCode}) اطمینان دارید؟`)) return;
-    setActionLoading(true);
-    try {
-      await reportsApi.delete(report.reportId);
-      showToast('گزارش با موفقیت حذف شد.', 'info');
-      if (onReportDeleted) onReportDeleted();
-    } catch (err: any) {
-      showToast(err.response?.data?.message || 'خطا در حذف گزارش', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -340,31 +418,40 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     setDraggedFieldIndex(null);
   };
 
-  // افزودن پارامتر از بانک پارامترها
-  const handleAddParamToReport = () => {
-    if (!selectedBankParamId) return;
-    const found = availableBankParams.find((p) => p.parameterBankId === Number(selectedBankParamId));
-    if (!found) return;
+  // افزودن مستقیم پارامتر / فیلتر جدید به همین گزارش با کامپوننت انتخابی
+  const handleAddNewParamToReport = () => {
+    // عنوان اجباری نیست (خصوصاً در چک‌باکس‌ها یا فیلترهای بدون عنوان)
+    const rawName = newParamName.trim();
+    const cleanOptions = newParamOptions.trim();
+    const ctrlMeta = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === newParamType);
+    
+    // اگر عنوان خالی بود، از گزینه‌ها یا نام نوع المان نام‌گذاری خودکار شود
+    const finalParamName = rawName || (cleanOptions ? cleanOptions.split(/[,،]/)[0].trim() : (ctrlMeta?.label || 'فیلتر بدون عنوان'));
 
-    if (editParams.some((p) => p.parameterName.trim() === found.parameterName.trim())) {
-      showToast('این پارامتر قبلاً به گزارش افزوده شده است.', 'error');
-      return;
-    }
+    // چیدمان روی هم (عمودی) یا کنار هم (افقی) برای چک‌باکس‌ها و رادیوها
+    const isVertical = newParamLayout === 'vertical' && ['checkbox', 'radio'].includes(newParamType);
+    const finalConfig = isVertical
+      ? `#vertical# ${cleanOptions}`
+      : (cleanOptions || undefined);
 
     setEditParams([
       ...editParams,
       {
-        parameterId: Math.floor(Math.random() * -1000), // موقت تا ذخیره در دیتابیس
-        parameterName: found.parameterName,
-        dataType: found.dataType,
-        isRequired: found.defaultIsRequired,
-        description: found.description || '',
-        uiControlType: found.uiControlType || 'text',
-        controlConfigJson: found.controlConfigJson,
+        parameterId: Math.floor(Math.random() * -1000), // شناسه موقت فرانت‌اند
+        parameterName: finalParamName,
+        dataType: 'NVARCHAR(50)',
+        isRequired: newParamIsRequired,
+        description: newParamDesc.trim(),
+        uiControlType: newParamType,
+        controlConfigJson: finalConfig,
       },
     ]);
-    setSelectedBankParamId('');
-    showToast(`پارامتر «${found.parameterName}» افزوده شد.`, 'success');
+
+    setNewParamName('');
+    setNewParamOptions('');
+    setNewParamDesc('');
+    setNewParamIsRequired(false);
+    showToast(`فیلتر «${finalParamName}» با موفقیت به گزارش افزوده شد.`, 'success');
   };
 
   const handleRemoveParamFromReport = (idx: number) => {
@@ -450,12 +537,24 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         parameters: editParams,
         tags: editTags,
       });
+
+      // آزادسازی خودکار قفل گزارش پس از ذخیره موفق
+      const activeSession = currentSessionId || currentSessionIdRef.current;
+      try {
+        await reportsApi.unlock(report.reportId, activeSession || undefined);
+      } catch (unlockErr) {
+        console.warn('Unlock after save:', unlockErr);
+      }
+
+      setCurrentSessionId(null);
+      currentSessionIdRef.current = null;
       setIsEditing(false);
-      showToast('تغییرات گزارش با موفقیت ذخیره شد.', 'success');
+      isEditingRef.current = false;
+      showToast('تغییرات گزارش با موفقیت ذخیره و قفل گزارش آزاد شد.', 'success');
       onRefresh();
     } catch (err: any) {
       const msg = err.response?.data?.message || 
-        (err.response?.status === 401 ? 'نشست کاربری منقضی شده بود؛ سیستم متصل شد، لطفاً دوباره دکمه ذخیره را بزنید.' : '') ||
+        (err.response?.status === 401 ? 'نشست کاربری منقضی شده بود؛ لطفاً دوباره دکمه ذخیره را بزنید.' : '') ||
         (err.response?.status === 403 ? 'دسترسی مجاز برای ذخیره تغییرات وجود ندارد.' : '') ||
         'خطا در ذخیره تغییرات';
       showToast(msg, 'error');
@@ -489,46 +588,48 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         </span>
       </nav>
 
-      {/* بنر وضعیت قفل */}
+      {/* بنر وضعیت قفل در صورت ویرایش توسط کاربر دیگر */}
       {isLockedByOther && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between text-rose-800 shadow-xs">
-          <div className="flex items-center gap-2.5 text-xs font-semibold">
-            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4 text-rose-600" />
+          <div className="flex items-center gap-3 text-xs font-semibold">
+            <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
+              <Lock className="w-5 h-5 text-rose-600" />
             </div>
             <div>
-              <p className="font-bold text-rose-900">گزارش در حال بررسی است</p>
-              <p className="text-[11px] text-rose-700">این گزارش هم‌اکنون توسط «{report.lockedByUserName}» در حال کار است (حالت مشاهده).</p>
+              <p className="font-bold text-rose-900 text-sm">
+                این گزارش توسط "{report.lockedByUserName || 'کاربر دیگر'}" در حال ویرایش است
+              </p>
             </div>
           </div>
           {currentUser?.roleId === 3 && (
             <button
-              onClick={handleUnlock}
-              className="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-bold shadow-xs transition-colors shrink-0"
+              type="button"
+              onClick={handleAdminForceUnlock}
+              className="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl font-bold shadow-xs transition-colors shrink-0 flex items-center gap-1.5 active:scale-95"
             >
-              آزادسازی قفل (ادمین)
+              <Unlock className="w-3.5 h-3.5" />
+              <span>شکستن قفل (ادمین)</span>
             </button>
           )}
         </div>
       )}
 
-      {isLockedByMe && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex items-center justify-between text-blue-900 text-xs shadow-xs">
+      {/* بنر وضعیت انحصار ویرایش برای کاربر جاری */}
+      {isEditing && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-3.5 flex items-center justify-between text-indigo-900 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-              <Unlock className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <Edit3 className="w-4 h-4" />
             </div>
             <div>
-              <span className="font-bold">قفل فعال: </span>
-              <span className="text-blue-700">این گزارش در اختیار شماست و ضربان قلب فعال است.</span>
+              <span className="font-bold text-indigo-950">گزارش در انحصار ویرایش شماست: </span>
+              <span className="text-indigo-700 text-[11px]">سایر کاربران امکان ویرایش هم‌زمان را ندارند. با زدن «ذخیره تغییرات» یا «انصراف»، قفل به صورت خودکار آزاد می‌شود.</span>
             </div>
           </div>
-          <button
-            onClick={handleUnlock}
-            className="bg-white border border-blue-200 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl font-bold transition-colors"
-          >
-            آزادسازی قفل
-          </button>
+          <span className="inline-flex items-center gap-1.5 text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2.5 py-1 rounded-lg border border-indigo-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>نشست فعال</span>
+          </span>
         </div>
       )}
 
@@ -546,7 +647,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
               </span>
             ) : report.status === 2 ? (
               <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
-                <Edit3 className="w-3.5 h-3.5 text-blue-600" /> در حال تکمیل
+                <Edit3 className="w-3.5 h-3.5 text-blue-600" /> قابل بررسی
               </span>
             ) : (
               <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
@@ -576,52 +677,41 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
 
         {/* دکمه‌های عملیاتی هدر */}
         <div className="flex items-center gap-2 shrink-0">
-          {!report.isLocked && (
-            <button
-              onClick={handleLock}
-              disabled={actionLoading}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all border border-slate-200 active:scale-95"
-            >
-              <Lock className="w-3.5 h-3.5 text-slate-600" />
-              <span>قفل‌گذاری و شروع کار</span>
-            </button>
-          )}
-
           {canEdit && !isEditing && (
             <button
-              onClick={() => setIsEditing(true)}
-              className="bg-white hover:bg-slate-50 text-slate-700 text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all border border-slate-200 active:scale-95"
+              type="button"
+              onClick={handleStartEdit}
+              disabled={actionLoading || Boolean(isLockedByOther)}
+              title={isLockedByOther ? `این گزارش توسط "${report.lockedByUserName}" در حال ویرایش است` : 'شروع ویرایش گزارش و قفل‌گذاری خودکار'}
+              className={`text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                isLockedByOther
+                  ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 active:scale-95'
+              }`}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>ویرایش</span>
-            </button>
-          )}
-
-          {canEdit && !isEditing && (
-            <button
-              onClick={handleDeleteReport}
-              disabled={actionLoading}
-              title="حذف این گزارش"
-              className="text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs p-2 rounded-xl transition-all active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" />
+              {isLockedByOther ? <Lock className="w-3.5 h-3.5 text-rose-500" /> : <Edit3 className="w-3.5 h-3.5 text-blue-600" />}
+              <span>{isLockedByOther ? `در حال ویرایش (${report.lockedByUserName})` : 'ویرایش گزارش'}</span>
             </button>
           )}
 
           {isEditing && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsEditing(false)}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3.5 py-2 rounded-xl font-medium"
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={actionLoading}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3.5 py-2 rounded-xl font-medium transition-colors"
               >
-                انصراف
+                انصراف و آزادسازی
               </button>
               <button
+                type="button"
                 onClick={handleSaveEdit}
                 disabled={actionLoading}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-xs active:scale-95"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-xs active:scale-95 flex items-center gap-1.5"
               >
-                ذخیره تغییرات
+                <Check className="w-4 h-4" />
+                <span>ذخیره تغییرات</span>
               </button>
             </div>
           )}
@@ -964,8 +1054,9 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         onOpenFieldManager={() => setIsEditing(true)}
       />
 
-      {/* ۵. پارامترهای ورودی (متصل به بانک پارامترها) */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
+      {/* ۵. پارامترهای ورودی گزارش (فیلترها) - صرفاً در حالت ویرایش نمایش داده می‌شود تا از نمایش تکراری جلوگیری شود */}
+      {isEditing && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
             <Filter className="w-4 h-4 text-amber-600" />
@@ -976,38 +1067,156 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           </span>
         </div>
 
-        {/* انتخاب پارامتر از بانک پارامترها در حالت ویرایش */}
+        {/* تعریف مستقیم پارامتر و فیلتر در همین گزارش با انتخاب نوع کامپوننت */}
         {isEditing && (
-          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-3">
-            <select
-              value={selectedBankParamId}
-              onChange={(e) => setSelectedBankParamId(e.target.value ? Number(e.target.value) : '')}
-              className="flex-1 text-xs border border-slate-300 rounded-xl p-2 bg-white"
-            >
-              <option value="">انتخاب پارامتر از مخزن مرکزی پارامترها...</option>
-              {availableBankParams.map((bp) => (
-                <option key={bp.parameterBankId} value={bp.parameterBankId}>
-                  {bp.parameterName} ({bp.defaultIsRequired ? 'اجباری' : 'اختیاری'})
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleAddParamToReport}
-              disabled={!selectedBankParamId}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>افزودن پارامتر</span>
-            </button>
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mb-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Plus className="w-4 h-4 text-indigo-600" />
+                <span>تعریف فیلتر / پارامتر ورودی جدید برای این گزارش:</span>
+              </span>
+              <span className="text-[10px] text-slate-400">
+                (نوع کامپوننت ورودی را انتخاب و عنوان متغیر را مشخص فرمایید)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+              {/* انتخاب نوع کامپوننت */}
+              <div className="md:col-span-3">
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">نوع کامپوننت ورودی</label>
+                <select
+                  value={newParamType}
+                  onChange={(e) => setNewParamType(e.target.value)}
+                  className="w-full text-xs border border-slate-300 rounded-xl p-2 bg-white font-medium"
+                >
+                  {UI_CONTROL_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.icon} {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* عنوان پارامتر */}
+              <div className={['radio', 'checkbox', 'dropdown', 'checkbox_dropdown', 'tristate_checkbox'].includes(newParamType) ? 'md:col-span-3' : 'md:col-span-5'}>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  عنوان فیلتر / متغیر {newParamType === 'checkbox' ? '(اختیاری)' : ''}
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    newParamType === 'checkbox'
+                      ? 'اختیاری (می‌تواند خالی باشد)'
+                      : newParamType === 'checkbox_dropdown'
+                      ? 'مثال: بر اساس صندوق‌دار'
+                      : newParamType === 'datetime_range'
+                      ? 'مثال: دوره زمانی'
+                      : 'مثال: از تاریخ، اسناد اتوماتیک فروش...'
+                  }
+                  value={newParamName}
+                  onChange={(e) => setNewParamName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddNewParamToReport();
+                    }
+                  }}
+                  className="w-full text-xs border border-slate-300 rounded-xl p-2 bg-white"
+                />
+              </div>
+
+              {/* گزینه‌ها در صورت نیاز */}
+              {['radio', 'checkbox', 'dropdown', 'checkbox_dropdown', 'tristate_checkbox'].includes(newParamType) && (
+                <div className="md:col-span-3">
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    {newParamType === 'tristate_checkbox'
+                      ? 'عناوین ۳ حالت (با کاما)'
+                      : newParamType === 'checkbox_dropdown'
+                      ? 'گزینه‌های منو (با کاما)'
+                      : newParamType === 'checkbox'
+                      ? 'گزینه‌های چک‌باکس (با کاما)'
+                      : 'گزینه‌ها (با کاما)'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={
+                      newParamType === 'tristate_checkbox'
+                        ? 'بله, خیر, همه موارد'
+                        : newParamType === 'checkbox_dropdown'
+                        ? 'صندوق‌دار ۱, صندوق‌دار ۲, کلیه صندوق‌ها'
+                        : newParamType === 'checkbox'
+                        ? 'نمایش سرجمع‌های صفر, نمایش ردیف‌های صفر, نمایش جزییات'
+                        : 'رسمی, غیررسمی'
+                    }
+                    value={newParamOptions}
+                    onChange={(e) => setNewParamOptions(e.target.value)}
+                    className="w-full text-xs border border-slate-300 rounded-xl p-2 bg-white"
+                  />
+                </div>
+              )}
+
+              {/* چیدمان برای چک‌باکس و رادیو */}
+              {['checkbox', 'radio'].includes(newParamType) && (
+                <div className="md:col-span-3">
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">چیدمان گزینه‌ها</label>
+                  <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => setNewParamLayout('vertical')}
+                      className={`flex-1 text-[11px] py-1 px-2 rounded-lg font-medium transition-all ${
+                        newParamLayout === 'vertical'
+                          ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      روی هم (عمودی)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewParamLayout('horizontal')}
+                      className={`flex-1 text-[11px] py-1 px-2 rounded-lg font-medium transition-all ${
+                        newParamLayout === 'horizontal'
+                          ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      کنار هم (افقی)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* اجباری بودن و دکمه افزودن */}
+              <div className="md:col-span-3 flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newParamIsRequired}
+                    onChange={(e) => setNewParamIsRequired(e.target.checked)}
+                    className="rounded text-indigo-600 focus:ring-0"
+                  />
+                  <span>فیلتر اجباری</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleAddNewParamToReport}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-xs shrink-0 transition-transform active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>افزودن به گزارش</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {(isEditing ? editParams : report.parameters).map((param, pIdx) => {
             const ctrlOpt = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === param.uiControlType) || UI_CONTROL_TYPE_OPTIONS[0];
-            const optionsList = param.controlConfigJson
-              ? param.controlConfigJson.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
+            const cleanConfig = (param.controlConfigJson || '').replace(/#vertical#\s*/, '').trim();
+            const optionsList = cleanConfig
+              ? cleanConfig.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
               : [];
 
             return (
@@ -1065,15 +1274,19 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
                         </select>
                       </div>
 
-                      {['radio', 'checkbox', 'dropdown'].includes(param.uiControlType || '') && (
+                      {['radio', 'checkbox', 'dropdown', 'checkbox_dropdown', 'tristate_checkbox'].includes(param.uiControlType || '') && (
                         <div>
                           <label className="text-slate-500 block mb-0.5">گزینه‌ها (با کاما):</label>
                           <input
                             type="text"
-                            value={param.controlConfigJson || ''}
+                            value={(param.controlConfigJson || '').replace(/#vertical#\s*/, '')}
                             onChange={(e) => {
                               const updated = [...editParams];
-                              updated[pIdx] = { ...updated[pIdx], controlConfigJson: e.target.value };
+                              const isVert = (updated[pIdx].controlConfigJson || '').includes('#vertical#');
+                              updated[pIdx] = {
+                                ...updated[pIdx],
+                                controlConfigJson: isVert ? `#vertical# ${e.target.value.trim()}` : e.target.value,
+                              };
                               setEditParams(updated);
                             }}
                             placeholder="گزینه‌ها..."
@@ -1082,6 +1295,33 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* امکان تغییر چیدمان عمودی/افقی در حالت ویرایش */}
+                    {['checkbox', 'radio'].includes(param.uiControlType || '') && (
+                      <div className="flex items-center justify-between bg-white px-2 py-1 rounded-lg border border-slate-200 text-[10px]">
+                        <span className="text-slate-500 font-medium">چیدمان گزینه‌ها:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...editParams];
+                            const cur = updated[pIdx].controlConfigJson || '';
+                            if (cur.includes('#vertical#')) {
+                              updated[pIdx] = { ...updated[pIdx], controlConfigJson: cur.replace(/#vertical#\s*/, '').trim() };
+                            } else {
+                              updated[pIdx] = { ...updated[pIdx], controlConfigJson: `#vertical# ${cur.trim()}` };
+                            }
+                            setEditParams(updated);
+                          }}
+                          className={`px-2 py-0.5 rounded font-bold border transition-colors ${
+                            param.controlConfigJson?.includes('#vertical#')
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : 'bg-slate-100 border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {param.controlConfigJson?.includes('#vertical#') ? '↕️ روی هم (عمودی)' : '↔️ کنار هم (افقی)'}
+                        </button>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center pt-1">
                       <label className="flex items-center gap-1 text-[10px] text-slate-600 cursor-pointer">
@@ -1113,6 +1353,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           })}
         </div>
       </div>
+      )}
 
       {/* ۶. برچسب‌ها و گزارش‌های مرتبط */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

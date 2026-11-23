@@ -177,7 +177,7 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="h-screen flex flex-col bg-slate-50 text-slate-800 overflow-hidden">
       {/* هدر بالایی با دکمه تنظیمات ادمین */}
       <Header
         currentUser={currentUser}
@@ -214,11 +214,6 @@ function MainApp() {
               isLoading={reportLoading}
               moduleTitle={getParentModuleTitle(selectedReportId)}
               fieldBankVersion={fieldBankVersion}
-              onReportDeleted={() => {
-                setSelectedReportId(null);
-                setReportDetail(null);
-                loadTree();
-              }}
             />
           )}
 
