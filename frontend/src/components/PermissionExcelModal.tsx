@@ -366,22 +366,20 @@ export const PermissionExcelModal: React.FC<PermissionExcelModalProps> = ({
         <div className="px-6 pt-3 border-b border-slate-200 flex gap-2 bg-white">
           <button
             onClick={() => setActiveTab('import')}
-            className={`pb-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all ${
-              activeTab === 'import'
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+            className={`pb-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all ${activeTab === 'import'
+              ? 'border-emerald-600 text-emerald-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
           >
             <UploadCloud className="w-4 h-4" />
             <span>درون‌ریزی از فایل اکسل (Import)</span>
           </button>
           <button
             onClick={() => setActiveTab('export')}
-            className={`pb-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all ${
-              activeTab === 'export'
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+            className={`pb-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all ${activeTab === 'export'
+              ? 'border-emerald-600 text-emerald-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
           >
             <Download className="w-4 h-4" />
             <span>خروجی گرفتن به اکسل (Export)</span>

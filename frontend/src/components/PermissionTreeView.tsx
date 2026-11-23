@@ -48,6 +48,44 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<number | 'locked' | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
 
+  // عرض سایدبار درختی و قابلیت تغییر اندازه پویا برای مشاهده کامل عناوین و نمای عریض
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('k_rpt_permission_tree_width');
+    return saved ? Math.max(320, Math.min(850, parseInt(saved, 10))) : 420;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 300 && newWidth <= 850) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem('k_rpt_permission_tree_width', sidebarWidth.toString());
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, sidebarWidth]);
+
+  const togglePresetWidth = () => {
+    setSidebarWidth((prev) => {
+      const next = prev < 480 ? 620 : 380;
+      localStorage.setItem('k_rpt_permission_tree_width', next.toString());
+      return next;
+    });
+  };
+
   // مودال‌های ایجاد و ویرایش سطح و دسترسی
   const [showNewLevelModal, setShowNewLevelModal] = useState(false);
   const [showEditLevelModal, setShowEditLevelModal] = useState(false);
