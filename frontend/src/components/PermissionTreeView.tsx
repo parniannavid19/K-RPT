@@ -16,6 +16,8 @@ import {
   KeyRound,
   Layers,
   Lock,
+  Maximize2,
+  Minimize2,
   Plus,
   RefreshCw,
   Search,
@@ -460,20 +462,6 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
             <span className="truncate text-slate-800 font-bold" title={node.title}>
               {node.title}
             </span>
-            {node.resourceCode && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigator.clipboard.writeText(node.resourceCode!);
-                  showToast(`کد منبع سطح «${node.resourceCode}» در کلیپ‌بورد کپی شد.`, 'info');
-                }}
-                title={`کپی کد منبع: ${node.resourceCode}`}
-                className="bg-slate-100 hover:bg-blue-100 hover:text-blue-700 border border-slate-200 text-slate-500 font-mono text-[10px] px-1.5 py-0.2 rounded-md transition-colors cursor-pointer"
-              >
-                {node.resourceCode}
-              </button>
-            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -584,19 +572,6 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 mr-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(perm.resourceNumber);
-                        showToast(`شماره منبع «${perm.resourceNumber}» در کلیپ‌بورد کپی شد.`, 'info');
-                      }}
-                      title={`کپی شماره منبع: ${perm.resourceNumber}`}
-                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 hover:bg-blue-100 hover:text-blue-700 border border-slate-200 text-slate-600 transition-colors cursor-pointer"
-                    >
-                      #{perm.resourceNumber}
-                    </button>
-
                     {/* دکمه‌های هاور برای کپی، انتقال و حذف سریع دسترسی */}
                     <div className="hidden group-hover/perm:flex items-center gap-0.5">
                       <button
@@ -690,30 +665,20 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
               <KeyRound className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-xs font-bold text-slate-900 leading-tight">درختواره دسترسی‌ها</h2>
-                <button
-                  type="button"
-                  onClick={togglePresetWidth}
-                  title={sidebarWidth < 480 ? 'تغییر به نمای عریض' : 'تغییر به نمای استاندارد'}
-                  className="text-[10px] text-slate-500 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 transition-colors cursor-pointer"
-                >
-                  {sidebarWidth < 480 ? 'نمای عریض' : 'استاندارد'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCollapseAll}
-                  title="بستن تمامی شاخه‌ها"
-                  className="text-[10px] text-slate-500 hover:text-amber-700 hover:bg-amber-50 px-1.5 py-0.2 rounded border border-slate-200 transition-colors cursor-pointer"
-                >
-                  بستن همه
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-400">ساختار نامحدود و کد منبع</span>
+              <h2 className="text-xs font-bold text-slate-900 leading-tight">درختواره دسترسی‌ها</h2>
+              <span className="text-[10px] text-slate-400">ساختار سلسله‌مراتبی سطوح</span>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={togglePresetWidth}
+              title={sidebarWidth < 480 ? 'تغییر به نمای عریض' : 'تغییر به نمای استاندارد'}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 transition-colors cursor-pointer"
+            >
+              {sidebarWidth < 480 ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+            </button>
             <button
               type="button"
               onClick={handleCollapseAll}
@@ -733,14 +698,14 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
             <button
               onClick={() => setShowExcelModal(true)}
               title="ورود و خروج اکسل دسترسی‌ها"
-              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition-colors"
+              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onTreeChange}
               title="تازه‌سازی ساختار درختی"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>

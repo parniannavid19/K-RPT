@@ -16,6 +16,8 @@ import {
   FolderOpen,
   FolderPlus,
   Lock,
+  Maximize2,
+  Minimize2,
   Plus,
   RefreshCw,
   Search,
@@ -607,26 +609,16 @@ export const TreeView: React.FC<TreeViewProps> = ({
       {/* هدر پنل درخت + دکمه افزودن و تغییر عرض */}
       <div className="p-3 border-b border-slate-200 space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-800">درخت ماژول‌ها و گزارش‌ها</span>
+          <span className="text-xs font-bold text-slate-800">درخت ماژول‌ها و گزارش‌ها</span>
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={togglePresetWidth}
               title={sidebarWidth < 450 ? 'تغییر به نمای عریض' : 'تغییر به نمای استاندارد'}
-              className="text-[10px] text-slate-500 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 transition-colors cursor-pointer"
             >
-              {sidebarWidth < 450 ? 'نمای عریض' : 'استاندارد'}
+              {sidebarWidth < 450 ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
             </button>
-            <button
-              type="button"
-              onClick={handleCollapseAll}
-              title="بستن تمامی شاخه‌ها"
-              className="text-[10px] text-slate-500 hover:text-amber-700 hover:bg-amber-50 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
-            >
-              بستن همه
-            </button>
-          </div>
-          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handleCollapseAll}

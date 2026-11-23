@@ -61,26 +61,27 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 gap-4">
-          {/* سمت راست: لوگو و نام سامانه + سوئیچر بخش‌های اصلی */}
-          <div className="flex items-center space-x-reverse space-x-6">
-            <div className="flex items-center space-x-reverse space-x-3.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-lg text-slate-900 tracking-tight">K-RPT</span>
-                  <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded-full">{APP_VERSION_LABEL}</span>
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium">سیستم کا د گ</p>
-              </div>
+          {/* سمت راست: لوگو، هویت برند و نام سامانه */}
+          <div className="flex items-center space-x-reverse space-x-3.5 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0">
+              <Database className="w-5 h-5" />
             </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg text-slate-900 tracking-tight">K-RPT</span>
+                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded-full">{APP_VERSION_LABEL}</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">سیستم کا د گ</p>
+            </div>
+          </div>
 
-            {/* سوئیچر بخش‌های سامانه (گزارش‌ها | دسترسی‌ها | کانفیگ‌ها) */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/90 shadow-2xs">
+          {/* مرکز: ناوبری مرکزی سیستم (گزارش‌ها | دسترسی‌ها | کانفیگ‌ها) و زیربخش‌های فعال */}
+          <div className="flex items-center justify-center gap-3 flex-1 min-w-0">
+            {/* سوئیچر بخش‌های اصلی سامانه */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/90 shadow-2xs shrink-0">
               <button
                 onClick={() => setActiveDomain('reports')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                   activeDomain === 'reports'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -92,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => setActiveDomain('permissions')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                   activeDomain === 'permissions'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -111,48 +112,46 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.2 rounded font-normal">به زودی</span>
               </div>
             </div>
-          </div>
 
-          {/* تب‌های بالای صفحه مختص دامنه گزارش‌ها */}
-          {activeDomain === 'reports' ? (
-            <nav className="flex space-x-reverse space-x-1 bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveTab('detail')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'detail'
-                    ? 'bg-white text-blue-600 shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                شناسنامه گزارش
-              </button>
-              <button
-                onClick={() => setActiveTab('search')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'search'
-                    ? 'bg-white text-blue-600 shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                جستجوی پیشرفته
-              </button>
-              <button
-                onClick={() => setActiveTab('diff')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'diff'
-                    ? 'bg-white text-blue-600 shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                مقایسه گزارش‌ها
-              </button>
-            </nav>
-          ) : (
-            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-4 py-1.5 rounded-xl text-xs font-bold">
-              <Shield className="w-4 h-4 text-emerald-600" />
-              <span>ماژول مدیریت درختواره و سطوح دسترسی</span>
-            </div>
-          )}
+            {/* تب‌های زیرمجموعه دامنه گزارش‌ها */}
+            {activeDomain === 'reports' && (
+              <>
+                <div className="h-5 w-px bg-slate-200 shrink-0" />
+                <nav className="flex space-x-reverse space-x-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+                  <button
+                    onClick={() => setActiveTab('detail')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      activeTab === 'detail'
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    شناسنامه گزارش
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('search')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      activeTab === 'search'
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    جستجوی پیشرفته
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('diff')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      activeTab === 'diff'
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    مقایسه گزارش‌ها
+                  </button>
+                </nav>
+              </>
+            )}
+          </div>
 
           {/* بخش کاربری، بانک فیلدها و دکمه تنظیمات ادمین */}
           <div className="flex items-center gap-3">
