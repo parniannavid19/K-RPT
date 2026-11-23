@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              فیلتر و جست‌وجوی چندبعدی
+              جستجوی پیشرفته
             </button>
             <button
               onClick={() => setActiveTab('diff')}
@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              مقایسه هوشمند دو گزارش
+              مقایسه گزارش‌ها
             </button>
           </nav>
 

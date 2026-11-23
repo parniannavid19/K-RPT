@@ -82,7 +82,9 @@ public class ReportsController : ControllerBase
                     ParameterName = p.ParameterName,
                     DataType = p.DataType,
                     IsRequired = p.IsRequired,
-                    Description = p.Description
+                    Description = p.Description,
+                    UiControlType = string.IsNullOrWhiteSpace(p.UiControlType) ? "text" : p.UiControlType,
+                    ControlConfigJson = p.ControlConfigJson
                 }).ToList(),
             Tags = report.ReportTags
                 .Select(rt => new TagDto
@@ -252,7 +254,9 @@ public class ReportsController : ControllerBase
                     ParameterName = p.ParameterName,
                     DataType = string.IsNullOrWhiteSpace(p.DataType) ? "NVARCHAR" : p.DataType,
                     IsRequired = p.IsRequired,
-                    Description = p.Description
+                    Description = p.Description,
+                    UiControlType = string.IsNullOrWhiteSpace(p.UiControlType) ? "text" : p.UiControlType.Trim(),
+                    ControlConfigJson = p.ControlConfigJson?.Trim()
                 });
             }
 

@@ -94,6 +94,8 @@ public class ParameterBankDto
     public string DataType { get; set; } = string.Empty;
     public bool DefaultIsRequired { get; set; }
     public string? Description { get; set; }
+    public string UiControlType { get; set; } = "text";
+    public string? ControlConfigJson { get; set; }
 }
 
 public class CreateTagDto
@@ -121,6 +123,8 @@ public class ReportParameterItemDto
     public string DataType { get; set; } = string.Empty;
     public bool IsRequired { get; set; }
     public string? Description { get; set; }
+    public string UiControlType { get; set; } = "text";
+    public string? ControlConfigJson { get; set; }
 }
 
 public class TagDto
@@ -220,6 +224,10 @@ public class ParameterDiffDto
     public bool ExistsInReportB { get; set; }
     public bool? IsRequiredA { get; set; }
     public bool? IsRequiredB { get; set; }
+    public string? UiControlTypeA { get; set; }
+    public string? UiControlTypeB { get; set; }
+    public string? ControlConfigJsonA { get; set; }
+    public string? ControlConfigJsonB { get; set; }
 }
 
 public class CompareReportsResponseDto
@@ -263,6 +271,8 @@ public class MultiReportParamPresenceDto
     public bool Exists { get; set; }
     public bool? IsRequired { get; set; }
     public string? DataType { get; set; }
+    public string? UiControlType { get; set; }
+    public string? ControlConfigJson { get; set; }
 }
 
 public class MultiReportParamDiffDto

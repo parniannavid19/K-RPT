@@ -90,7 +90,11 @@ public class DiffController : ControllerBase
                 ExistsInReportA = pA != null,
                 ExistsInReportB = pB != null,
                 IsRequiredA = pA?.IsRequired,
-                IsRequiredB = pB?.IsRequired
+                IsRequiredB = pB?.IsRequired,
+                UiControlTypeA = pA?.UiControlType,
+                UiControlTypeB = pB?.UiControlType,
+                ControlConfigJsonA = pA?.ControlConfigJson,
+                ControlConfigJsonB = pB?.ControlConfigJson
             });
         }
 
@@ -197,7 +201,9 @@ public class DiffController : ControllerBase
                     ReportCode = rep.ReportCode,
                     Exists = p != null,
                     IsRequired = p?.IsRequired,
-                    DataType = p?.DataType
+                    DataType = p?.DataType,
+                    UiControlType = p?.UiControlType,
+                    ControlConfigJson = p?.ControlConfigJson
                 });
             }
 
@@ -240,7 +246,9 @@ public class DiffController : ControllerBase
                 ParameterName = p.ParameterName,
                 DataType = p.DataType,
                 IsRequired = p.IsRequired,
-                Description = p.Description
+                Description = p.Description,
+                UiControlType = string.IsNullOrWhiteSpace(p.UiControlType) ? "text" : p.UiControlType,
+                ControlConfigJson = p.ControlConfigJson
             }).ToList(),
             Tags = r.ReportTags.Select(rt => new TagDto
             {

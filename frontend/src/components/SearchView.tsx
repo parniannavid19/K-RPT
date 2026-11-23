@@ -99,7 +99,7 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectReport, fieldBan
       <div>
         <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
           <Filter className="w-5 h-5 text-blue-600" />
-          موتور جست‌وجو و فیلتر پیشرفته چندبعدی
+          موتور جستجوی پیشرفته گزارش‌ها
         </h2>
         <p className="text-xs text-slate-500 mt-1">
           گزارش‌ها را بر اساس ترکیب فیلدهای محاسباتی (منطق AND/OR)، برچسب‌ها و وضعیت بررسی کشف کنید.

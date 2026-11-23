@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { ReportFieldItem, ReportParameterItem } from '../types';
 import {
   Calculator,
+  Calendar,
   Check,
   Copy,
   Download,
@@ -9,6 +10,7 @@ import {
   Info,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -259,16 +261,6 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
               <p className="text-[11px] text-slate-500">
                 خروجی تعاملی نمونه با تمامی فیلدهای ثبت‌شده؛ با انتخاب هر فیلد فرمول‌دار، فرمول محاسباتی آن نمایش داده می‌شود.
               </p>
-              {parameters.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-slate-500 pt-1">
-                  <span className="font-bold text-slate-600">فیلترهای گزارش:</span>
-                  {parameters.map((p) => (
-                    <span key={p.parameterId} className="bg-slate-100 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-medium">
-                      {p.parameterName}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -297,6 +289,172 @@ export const MockReportPreview: React.FC<MockReportPreviewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* نوار تعاملی پارامترها و فیلترهای ورودی گزارش (Interactive Filter Bar) */}
+      {parameters.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+            <span className="flex items-center gap-1.5 text-indigo-900">
+              <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
+              <span>فیلترها و پارامترهای ورودی گزارش ({parameters.length} مورد):</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-normal">
+              (شبیه‌سازی تعاملی بر اساس نوع المان‌های ورودی)
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            {parameters.map((p) => {
+              const ctrlType = p.uiControlType || 'text';
+              const options = p.controlConfigJson
+                ? p.controlConfigJson.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
+                : [];
+
+              if (ctrlType === 'date_range') {
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <span className="text-[10px] text-slate-400">از</span>
+                    <input
+                      type="text"
+                      defaultValue="۱۴۰۳/۰۸/۰۱"
+                      placeholder="۱۴۰۳/۰۸/۰۱"
+                      className="w-20 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"
+                    />
+                    <span className="text-[10px] text-slate-400">تا</span>
+                    <input
+                      type="text"
+                      defaultValue="۱۴۰۳/۰۸/۳۰"
+                      placeholder="۱۴۰۳/۰۸/۳۰"
+                      className="w-20 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"
+                    />
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'date') {
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <input
+                      type="text"
+                      defaultValue="۱۴۰۳/۰۸/۱۵"
+                      placeholder="۱۴۰۳/۰۸/۱۵"
+                      className="w-24 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"
+                    />
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'radio') {
+                const radioOptions = options.length > 0 ? options : ['گزینه ۱', 'گزینه ۲'];
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-2 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <div className="flex items-center gap-2.5">
+                      {radioOptions.map((opt, i) => (
+                        <label key={i} className="flex items-center gap-1 text-[11px] cursor-pointer text-slate-700 hover:text-indigo-600">
+                          <input
+                            type="radio"
+                            name={`filter_radio_${p.parameterId}`}
+                            defaultChecked={i === 0}
+                            className="text-indigo-600 focus:ring-0"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'checkbox') {
+                const checkOptions = options.length > 0 ? options : ['همه'];
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-2 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <div className="flex items-center gap-2.5">
+                      {checkOptions.map((opt, i) => (
+                        <label key={i} className="flex items-center gap-1 text-[11px] cursor-pointer text-slate-700 hover:text-indigo-600">
+                          <input
+                            type="checkbox"
+                            defaultChecked={i === 0}
+                            className="rounded text-indigo-600 focus:ring-0"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'dropdown') {
+                const dropOptions = options.length > 0 ? options : ['انتخاب همه'];
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <select className="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-slate-700 focus:outline-hidden">
+                      {dropOptions.map((opt, i) => (
+                        <option key={i} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'number_range') {
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                    <span className="text-[10px] text-slate-400">از</span>
+                    <input
+                      type="number"
+                      placeholder="حداقل"
+                      className="w-16 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1 py-0.5"
+                    />
+                    <span className="text-[10px] text-slate-400">تا</span>
+                    <input
+                      type="number"
+                      placeholder="حداکثر"
+                      className="w-16 text-[11px] font-mono text-center bg-slate-50 border border-slate-200 rounded px-1 py-0.5"
+                    />
+                  </div>
+                );
+              }
+
+              if (ctrlType === 'boolean') {
+                return (
+                  <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 hover:text-indigo-600">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="rounded text-indigo-600 focus:ring-0"
+                      />
+                      <span className="font-bold">{p.parameterName}</span>
+                    </label>
+                  </div>
+                );
+              }
+
+              // Default text or number input
+              return (
+                <div key={p.parameterId} className="flex items-center gap-1.5 text-xs bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="font-bold text-slate-700">{p.parameterName}:</span>
+                  <input
+                    type={ctrlType === 'number' ? 'number' : 'text'}
+                    placeholder={p.description || 'ورود مقدار...'}
+                    className="w-28 text-[11px] bg-slate-50 border border-slate-200 rounded px-2 py-0.5"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* اگر گزارشی هیچ فیلدی ندارد */}
       {fields.length === 0 ? (

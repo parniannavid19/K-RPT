@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { FieldBankItem, ParameterBankItem, ReportDetail, Tag, User } from '../types';
+import { UI_CONTROL_TYPE_OPTIONS } from '../types';
 import { fieldBankApi, parameterBankApi, reportsApi, tagsApi } from '../api/client';
 import { FormulaBuilder } from './FormulaBuilder';
 import { MockReportPreview } from './MockReportPreview';
@@ -358,6 +359,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         dataType: found.dataType,
         isRequired: found.defaultIsRequired,
         description: found.description || '',
+        uiControlType: found.uiControlType || 'text',
+        controlConfigJson: found.controlConfigJson,
       },
     ]);
     setSelectedBankParamId('');
@@ -1001,44 +1004,113 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {(isEditing ? editParams : report.parameters).map((param, pIdx) => (
-            <div key={param.parameterId || pIdx} className="border border-slate-200 rounded-2xl p-3.5 bg-slate-50/70 space-y-1 relative group">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-xs text-slate-900">{param.parameterName}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  param.isRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {param.isRequired ? 'اجباری' : 'اختیاری'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-normal">{param.description || 'بدون توضیح'}</p>
+          {(isEditing ? editParams : report.parameters).map((param, pIdx) => {
+            const ctrlOpt = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === param.uiControlType) || UI_CONTROL_TYPE_OPTIONS[0];
+            const optionsList = param.controlConfigJson
+              ? param.controlConfigJson.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
+              : [];
 
-              {isEditing && (
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200/50 mt-2">
-                  <label className="flex items-center gap-1 text-[10px] text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={param.isRequired}
-                      onChange={(e) => {
-                        const updated = [...editParams];
-                        updated[pIdx] = { ...updated[pIdx], isRequired: e.target.checked };
-                        setEditParams(updated);
-                      }}
-                      className="rounded text-indigo-600"
-                    />
-                    <span>اجباری</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveParamFromReport(pIdx)}
-                    className="text-slate-400 hover:text-rose-600 p-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+            return (
+              <div key={param.parameterId || pIdx} className="border border-slate-200 rounded-2xl p-3.5 bg-slate-50/70 space-y-2 relative group">
+                <div className="flex justify-between items-start gap-1">
+                  <div>
+                    <span className="font-bold text-xs text-slate-900 block">{param.parameterName}</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md mt-1">
+                      <span>{ctrlOpt.icon}</span>
+                      <span>{ctrlOpt.label}</span>
+                    </span>
+                  </div>
+
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
+                    param.isRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {param.isRequired ? 'اجباری' : 'اختیاری'}
+                  </span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {param.description && (
+                  <p className="text-[11px] text-slate-500 leading-normal">{param.description}</p>
+                )}
+
+                {/* نمایش گزینه‌ها در صورت وجود */}
+                {optionsList.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {optionsList.map((opt, i) => (
+                      <span key={i} className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.2 rounded-md font-mono">
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {isEditing && (
+                  <div className="pt-2 border-t border-slate-200/60 space-y-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div>
+                        <label className="text-slate-500 block mb-0.5">نوع المان:</label>
+                        <select
+                          value={param.uiControlType || 'text'}
+                          onChange={(e) => {
+                            const updated = [...editParams];
+                            updated[pIdx] = { ...updated[pIdx], uiControlType: e.target.value };
+                            setEditParams(updated);
+                          }}
+                          className="w-full border border-slate-300 rounded-lg p-1 bg-white text-[10px]"
+                        >
+                          {UI_CONTROL_TYPE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.icon} {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {['radio', 'checkbox', 'dropdown'].includes(param.uiControlType || '') && (
+                        <div>
+                          <label className="text-slate-500 block mb-0.5">گزینه‌ها (با کاما):</label>
+                          <input
+                            type="text"
+                            value={param.controlConfigJson || ''}
+                            onChange={(e) => {
+                              const updated = [...editParams];
+                              updated[pIdx] = { ...updated[pIdx], controlConfigJson: e.target.value };
+                              setEditParams(updated);
+                            }}
+                            placeholder="گزینه‌ها..."
+                            className="w-full border border-slate-300 rounded-lg p-1 bg-white text-[10px]"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                      <label className="flex items-center gap-1 text-[10px] text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={param.isRequired}
+                          onChange={(e) => {
+                            const updated = [...editParams];
+                            updated[pIdx] = { ...updated[pIdx], isRequired: e.target.checked };
+                            setEditParams(updated);
+                          }}
+                          className="rounded text-indigo-600"
+                        />
+                        <span>اجباری</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveParamFromReport(pIdx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50"
+                        title="حذف پارامتر از این گزارش"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

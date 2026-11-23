@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { FieldBankItem, ParameterBankItem, User } from '../types';
+import { UI_CONTROL_TYPE_OPTIONS } from '../types';
 import { fieldBankApi, parameterBankApi } from '../api/client';
 import { useToast } from './Toast';
 import { Database, Edit, Filter, Plus, Search, Trash2, X } from 'lucide-react';
@@ -38,6 +39,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
   const [paramDataType, setParamDataType] = useState('NVARCHAR(50)');
   const [paramDefaultRequired, setParamDefaultRequired] = useState(false);
   const [paramDesc, setParamDesc] = useState('');
+  const [paramUiControlType, setParamUiControlType] = useState<string>('text');
+  const [paramControlOptions, setParamControlOptions] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const canManage = currentUser && (currentUser.roleId === 2 || currentUser.roleId === 3);
@@ -160,6 +163,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
     setParamDataType('NVARCHAR(50)');
     setParamDefaultRequired(false);
     setParamDesc('');
+    setParamUiControlType('text');
+    setParamControlOptions('');
     setShowParamForm(true);
   };
 
@@ -169,6 +174,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
     setParamDataType(param.dataType || 'NVARCHAR(50)');
     setParamDefaultRequired(param.defaultIsRequired);
     setParamDesc(param.description || '');
+    setParamUiControlType(param.uiControlType || 'text');
+    setParamControlOptions(param.controlConfigJson || '');
     setShowParamForm(true);
   };
 
@@ -183,6 +190,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
           dataType: paramDataType.trim(),
           defaultIsRequired: paramDefaultRequired,
           description: paramDesc.trim(),
+          uiControlType: paramUiControlType,
+          controlConfigJson: paramControlOptions.trim() || undefined,
         });
         showToast('پارامتر با موفقیت ویرایش شد.', 'success');
       } else {
@@ -191,6 +200,8 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
           dataType: paramDataType.trim(),
           defaultIsRequired: paramDefaultRequired,
           description: paramDesc.trim(),
+          uiControlType: paramUiControlType,
+          controlConfigJson: paramControlOptions.trim() || undefined,
         });
         showToast('پارامتر استاندارد جدید با موفقیت ثبت شد.', 'success');
       }
@@ -451,7 +462,54 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                     />
                   </div>
 
-                  <div className="flex items-center pt-5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">نوع المان ورودی در گزارش (UI Control)</label>
+                    <select
+                      value={paramUiControlType}
+                      onChange={(e) => setParamUiControlType(e.target.value)}
+                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white font-medium"
+                    >
+                      {UI_CONTROL_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.icon} {opt.label} — {opt.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* در صورت انتخاب رادیوباتن، چک‌باکس یا منوی کشویی: تعریف گزینه‌ها */}
+                {['radio', 'checkbox', 'dropdown'].includes(paramUiControlType) && (
+                  <div className="p-3 bg-white rounded-xl border border-indigo-200 space-y-1.5 animate-in fade-in duration-150">
+                    <label className="block text-[11px] font-bold text-indigo-900">
+                      گزینه‌های این فیلتر (با کاما یا ویرگول فارسی جدا کنید)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: رسمی, غیررسمی یا نقدی, چکی, اعتباری"
+                      value={paramControlOptions}
+                      onChange={(e) => setParamControlOptions(e.target.value)}
+                      className="w-full text-xs border border-indigo-200 rounded-lg p-2 bg-indigo-50/30"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      این گزینه‌ها به عنوان انتخاب‌های کاربر در فیلتر گزارش و شبیه‌سازی نمایش داده خواهند شد.
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">شرح کاربرد و راهنمای فیلتر</label>
+                    <input
+                      type="text"
+                      placeholder="توضیحاتی که برای راهنمایی کاربر گزارش نمایش داده می‌شود..."
+                      value={paramDesc}
+                      onChange={(e) => setParamDesc(e.target.value)}
+                      className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                    />
+                  </div>
+
+                  <div className="flex items-center pt-3">
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
                       <input
                         type="checkbox"
@@ -462,17 +520,6 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                       <span>به صورت پیش‌فرض اجباری باشد</span>
                     </label>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">شرح کاربرد و راهنمای فیلتر</label>
-                  <input
-                    type="text"
-                    placeholder="توضیحاتی که برای راهنمایی کاربر گزارش نمایش داده می‌شود..."
-                    value={paramDesc}
-                    onChange={(e) => setParamDesc(e.target.value)}
-                    className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
-                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
@@ -504,45 +551,60 @@ export const FieldBankModal: React.FC<FieldBankModalProps> = ({
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500 text-[11px]">
                       <th className="py-2.5 px-3">عنوان پارامتر</th>
+                      <th className="py-2.5 px-3">نوع المان ورودی</th>
                       <th className="py-2.5 px-2 text-center">وضعیت اجباری بودن</th>
                       <th className="py-2.5 px-3">توضیحات راهنما</th>
                       {canManage && <th className="py-2.5 px-2 text-center w-20">عملیات</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {params.map((p) => (
-                      <tr key={p.parameterBankId} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-2.5 px-3 font-bold text-slate-800">{p.parameterName}</td>
-                        <td className="py-2.5 px-2 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            p.defaultIsRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {p.defaultIsRequired ? 'اجباری' : 'اختیاری'}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-600 text-[11px]">{p.description || '-'}</td>
-                        {canManage && (
-                          <td className="py-2.5 px-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => handleOpenEditParam(p)}
-                                title="ویرایش پارامتر"
-                                className="text-slate-400 hover:text-indigo-600 p-1 rounded"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteParam(p)}
-                                title="حذف پارامتر"
-                                className="text-slate-400 hover:text-rose-600 p-1 rounded"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                    {params.map((p) => {
+                      const ctrlOpt = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === p.uiControlType) || UI_CONTROL_TYPE_OPTIONS[0];
+                      return (
+                        <tr key={p.parameterBankId} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-2.5 px-3 font-bold text-slate-800">{p.parameterName}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg border border-slate-200">
+                              <span>{ctrlOpt.icon}</span>
+                              <span className="font-medium">{ctrlOpt.label}</span>
+                              {p.controlConfigJson && (
+                                <span className="text-[10px] text-indigo-600 font-mono font-bold" title={p.controlConfigJson}>
+                                  ({p.controlConfigJson.split(/[,،]/).filter(Boolean).length} گزینه)
+                                </span>
+                              )}
+                            </span>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="py-2.5 px-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              p.defaultIsRequired ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {p.defaultIsRequired ? 'اجباری' : 'اختیاری'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 text-[11px]">{p.description || '-'}</td>
+                          {canManage && (
+                            <td className="py-2.5 px-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => handleOpenEditParam(p)}
+                                  title="ویرایش پارامتر"
+                                  className="text-slate-400 hover:text-indigo-600 p-1 rounded"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteParam(p)}
+                                  title="حذف پارامتر"
+                                  className="text-slate-400 hover:text-rose-600 p-1 rounded"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

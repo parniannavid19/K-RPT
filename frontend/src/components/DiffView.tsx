@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { MultiReportDiffResponse, TreeNode } from '../types';
+import { UI_CONTROL_TYPE_OPTIONS } from '../types';
 import { diffApi, treeApi } from '../api/client';
 import {
   Check,
@@ -154,7 +155,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">
-              موتور مقایسه هوشمند چندگانه گزارش‌ها (Multi-Report Diff Analyzer)
+              موتور مقایسه گزارش‌ها (Multi-Report Diff Analyzer)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               امکان انتخاب، جست‌وجو و مقایسه هم‌زمان ۲ تا ۸ گزارش مختلف و کشف تفاوت‌های فرمولی و ساختار ستون‌ها.
@@ -486,18 +487,31 @@ export const DiffView: React.FC<DiffViewProps> = ({
                             </span>
                           )}
                         </td>
-                        {pd.presence.map((p) => (
-                          <td key={p.reportId} className="py-2.5 px-3 text-center border-r border-slate-100">
-                            {p.exists ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
-                                <Check className="w-3.5 h-3.5" />
-                                {p.isRequired ? 'اجباری' : 'اختیاری'}
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">-</span>
-                            )}
-                          </td>
-                        ))}
+                        {pd.presence.map((p) => {
+                          const ctrlOpt = UI_CONTROL_TYPE_OPTIONS.find((o) => o.value === p.uiControlType);
+                          return (
+                            <td key={p.reportId} className="py-2.5 px-3 text-center border-r border-slate-100">
+                              {p.exists ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold">
+                                    <Check className="w-3.5 h-3.5" />
+                                    {p.isRequired ? 'اجباری' : 'اختیاری'}
+                                  </span>
+                                  {ctrlOpt && (
+                                    <div>
+                                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.2">
+                                        <span>{ctrlOpt.icon}</span>
+                                        <span>{ctrlOpt.label}</span>
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>

@@ -62,12 +62,46 @@ export interface ReportFieldItem {
   customNote?: string;
 }
 
+export type UiControlType =
+  | 'text'
+  | 'date'
+  | 'date_range'
+  | 'number'
+  | 'number_range'
+  | 'radio'
+  | 'checkbox'
+  | 'dropdown'
+  | 'boolean';
+
+export interface UiControlTypeOption {
+  value: UiControlType;
+  label: string;
+  icon: string;
+  description: string;
+  hasOptions: boolean;
+  example: string;
+}
+
+export const UI_CONTROL_TYPE_OPTIONS: UiControlTypeOption[] = [
+  { value: 'text', label: 'متن آزاد', icon: '📝', description: 'ورودی متنی ساده', hasOptions: false, example: 'شرح سند، کلمه کلیدی' },
+  { value: 'date_range', label: 'بازه تاریخ (از - تا)', icon: '📅', description: 'محدوده تاریخ شمسی با تقویم', hasOptions: false, example: 'از تاریخ ... تا تاریخ ...' },
+  { value: 'date', label: 'تک تاریخ', icon: '📆', description: 'انتخاب یک تاریخ مشخص', hasOptions: false, example: 'تا تاریخ معین، تاریخ ثبت' },
+  { value: 'radio', label: 'رادیوباتن (تک‌انتخابی)', icon: '🔘', description: 'انتخاب یک گزینه از بین گزینه‌های ثابت', hasOptions: true, example: 'رسمی, غیررسمی' },
+  { value: 'checkbox', label: 'چک‌باکس (چندانتخابی)', icon: '☑️', description: 'انتخاب یک یا چند گزینه هم‌زمان', hasOptions: true, example: 'پیش‌نویس, تاییدشده, نهایی' },
+  { value: 'dropdown', label: 'منوی کشویی (Dropdown)', icon: '🔽', description: 'لیست بازشونده از مقادیر', hasOptions: true, example: 'نقدی, اعتباری, چکی' },
+  { value: 'number_range', label: 'بازه عددی / ریالی (از - تا)', icon: '🔢', description: 'تعیین کف و سقف مقدار عددی', hasOptions: false, example: 'از مبلغ ... تا مبلغ ...' },
+  { value: 'number', label: 'عددی ساده', icon: '🔢', description: 'ورودی عددی تک‌مقداری', hasOptions: false, example: 'حداقل تعداد' },
+  { value: 'boolean', label: 'سوئیچ بله / خیر', icon: '⚡', description: 'کلید دو وضعیتی فعال / غیرفعال', hasOptions: false, example: 'فقط اقلام فعال' },
+];
+
 export interface ReportParameterItem {
   parameterId: number;
   parameterName: string;
   dataType?: string;
   isRequired: boolean;
   description?: string;
+  uiControlType?: string;
+  controlConfigJson?: string;
 }
 
 export interface Tag {
@@ -122,6 +156,8 @@ export interface ParameterBankItem {
   dataType: string;
   defaultIsRequired: boolean;
   description?: string;
+  uiControlType?: string;
+  controlConfigJson?: string;
 }
 
 export interface SearchResultItem {
@@ -154,6 +190,8 @@ export interface ParameterDiffItem {
   existsInReportB: boolean;
   isRequiredA?: boolean;
   isRequiredB?: boolean;
+  uiControlTypeA?: string;
+  uiControlTypeB?: string;
 }
 
 export interface DiffResponse {
@@ -188,6 +226,7 @@ export interface MultiReportParamPresence {
   exists: boolean;
   isRequired?: boolean;
   dataType?: string;
+  uiControlType?: string;
 }
 
 export interface MultiReportParamDiff {

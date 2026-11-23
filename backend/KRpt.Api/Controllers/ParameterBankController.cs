@@ -36,7 +36,9 @@ public class ParameterBankController : ControllerBase
                 ParameterName = p.ParameterName,
                 DataType = p.DataType,
                 DefaultIsRequired = p.DefaultIsRequired,
-                Description = p.Description
+                Description = p.Description,
+                UiControlType = string.IsNullOrWhiteSpace(p.UiControlType) ? "text" : p.UiControlType,
+                ControlConfigJson = p.ControlConfigJson
             })
             .ToListAsync();
 
@@ -59,6 +61,8 @@ public class ParameterBankController : ControllerBase
             DataType = string.IsNullOrWhiteSpace(dto.DataType) ? "NVARCHAR(50)" : dto.DataType.Trim(),
             DefaultIsRequired = dto.DefaultIsRequired,
             Description = dto.Description?.Trim(),
+            UiControlType = string.IsNullOrWhiteSpace(dto.UiControlType) ? "text" : dto.UiControlType.Trim(),
+            ControlConfigJson = dto.ControlConfigJson?.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -83,6 +87,8 @@ public class ParameterBankController : ControllerBase
         param.DataType = string.IsNullOrWhiteSpace(dto.DataType) ? param.DataType : dto.DataType.Trim();
         param.DefaultIsRequired = dto.DefaultIsRequired;
         param.Description = dto.Description?.Trim();
+        param.UiControlType = string.IsNullOrWhiteSpace(dto.UiControlType) ? "text" : dto.UiControlType.Trim();
+        param.ControlConfigJson = dto.ControlConfigJson?.Trim();
 
         await _context.SaveChangesAsync();
         return Ok(new { success = true, message = "پارامتر با موفقیت ویرایش شد." });

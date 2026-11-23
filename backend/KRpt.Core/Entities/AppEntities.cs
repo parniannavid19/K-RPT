@@ -176,6 +176,11 @@ public class ReportParameter
     
     [MaxLength(500)]
     public string? Description { get; set; }
+
+    [MaxLength(50)]
+    public string UiControlType { get; set; } = "text";
+    
+    public string? ControlConfigJson { get; set; }
 }
 
 [Table("ParameterBank")]
@@ -194,6 +199,11 @@ public class ParameterBank
     
     [MaxLength(500)]
     public string? Description { get; set; }
+
+    [MaxLength(50)]
+    public string UiControlType { get; set; } = "text";
+    
+    public string? ControlConfigJson { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
