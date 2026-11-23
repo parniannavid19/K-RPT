@@ -12,6 +12,7 @@ import {
   FileText,
   Folder,
   FolderInput,
+  FolderMinus,
   FolderOpen,
   FolderPlus,
   Lock,
@@ -178,6 +179,24 @@ export const TreeView: React.FC<TreeViewProps> = ({
       localStorage.setItem('k_rpt_tree_width', next.toString());
       return next;
     });
+  };
+
+  const handleCollapseAll = () => {
+    setOpenNodes({});
+    showToast('تمامی شاخه‌ها بسته شدند.', 'info');
+  };
+
+  const handleExpandAll = () => {
+    const all: Record<number, boolean> = {};
+    const collect = (items: TreeNode[]) => {
+      for (const item of items) {
+        if (item.nodeType === 1) all[item.nodeId] = true;
+        if (item.children && item.children.length > 0) collect(item.children);
+      }
+    };
+    collect(nodes);
+    setOpenNodes(all);
+    showToast('تمامی شاخه‌ها باز شدند.', 'info');
   };
 
   const canManageTree = currentUser && (currentUser.roleId === 2 || currentUser.roleId === 3);
@@ -588,25 +607,52 @@ export const TreeView: React.FC<TreeViewProps> = ({
       {/* هدر پنل درخت + دکمه افزودن و تغییر عرض */}
       <div className="p-3 border-b border-slate-200 space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-slate-800">درخت ماژول‌ها و گزارش‌ها</span>
             <button
+              type="button"
               onClick={togglePresetWidth}
               title={sidebarWidth < 450 ? 'تغییر به نمای عریض' : 'تغییر به نمای استاندارد'}
-              className="text-[10px] text-slate-500 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.5 rounded transition-colors"
+              className="text-[10px] text-slate-500 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
             >
               {sidebarWidth < 450 ? 'نمای عریض' : 'استاندارد'}
             </button>
-          </div>
-          {canManageTree && (
             <button
-              onClick={() => handleOpenAddModal(1)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 shadow-xs transition-colors"
+              type="button"
+              onClick={handleCollapseAll}
+              title="بستن تمامی شاخه‌ها"
+              className="text-[10px] text-slate-500 hover:text-amber-700 hover:bg-amber-50 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
             >
-              <Plus className="w-3 h-3" />
-              <span>افزودن</span>
+              بستن همه
             </button>
-          )}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleCollapseAll}
+              title="بستن همه شاخه‌ها"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderMinus className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleExpandAll}
+              title="باز کردن همه شاخه‌ها"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+            </button>
+            {canManageTree && (
+              <button
+                onClick={() => handleOpenAddModal(1)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>افزودن</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* جست‌وجوی سریع با نمایش تعداد نتایج */}

@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Folder,
   FolderInput,
+  FolderMinus,
   FolderOpen,
   FolderPlus,
   KeyRound,
@@ -84,6 +85,28 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
       localStorage.setItem('k_rpt_permission_tree_width', next.toString());
       return next;
     });
+  };
+
+  // بستن تمامی شاخه‌ها
+  const handleCollapseAll = () => {
+    setExpandedNodes(new Set());
+    showToast('تمامی شاخه‌ها بسته شدند.', 'info');
+  };
+
+  // باز کردن تمامی شاخه‌ها
+  const handleExpandAll = () => {
+    const allIds = new Set<number>();
+    const collect = (items: PermissionTreeNode[]) => {
+      for (const item of items) {
+        allIds.add(item.nodeId);
+        if (item.children && item.children.length > 0) {
+          collect(item.children);
+        }
+      }
+    };
+    collect(nodes);
+    setExpandedNodes(allIds);
+    showToast('تمامی شاخه‌ها باز شدند.', 'info');
   };
 
   // مودال‌های ایجاد و ویرایش سطح و دسترسی
@@ -644,7 +667,21 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
   };
 
   return (
-    <aside className="w-80 border-l border-slate-200 bg-white flex flex-col h-full overflow-hidden select-none">
+    <aside
+      style={{ width: `${sidebarWidth}px` }}
+      className={`relative bg-white border-l border-slate-200 flex flex-col h-full shrink-0 transition-[width] duration-75 select-none ${
+        isResizing ? 'cursor-col-resize' : ''
+      }`}
+    >
+      {/* دستگیره تعاملی تغییر عرض سایدبار (Drag Resizer) در مرز چپ */}
+      <div
+        onMouseDown={() => setIsResizing(true)}
+        title="برای تغییر عرض سایدبار به چپ یا راست بکشید"
+        className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 transition-colors z-20 ${
+          isResizing ? 'bg-blue-600 w-1' : 'bg-transparent hover:bg-blue-400'
+        }`}
+      />
+
       {/* سربرگ سایدبار دسترسی‌ها */}
       <div className="p-3 border-b border-slate-200/80 space-y-2.5">
         <div className="flex items-center justify-between">
@@ -653,25 +690,59 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
               <KeyRound className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-slate-900 leading-tight">درختواره دسترسی‌ها</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-xs font-bold text-slate-900 leading-tight">درختواره دسترسی‌ها</h2>
+                <button
+                  type="button"
+                  onClick={togglePresetWidth}
+                  title={sidebarWidth < 480 ? 'تغییر به نمای عریض' : 'تغییر به نمای استاندارد'}
+                  className="text-[10px] text-slate-500 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 transition-colors cursor-pointer"
+                >
+                  {sidebarWidth < 480 ? 'نمای عریض' : 'استاندارد'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCollapseAll}
+                  title="بستن تمامی شاخه‌ها"
+                  className="text-[10px] text-slate-500 hover:text-amber-700 hover:bg-amber-50 px-1.5 py-0.2 rounded border border-slate-200 transition-colors cursor-pointer"
+                >
+                  بستن همه
+                </button>
+              </div>
               <span className="text-[10px] text-slate-400">ساختار نامحدود و کد منبع</span>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
             <button
+              type="button"
+              onClick={handleCollapseAll}
+              title="بستن همه شاخه‌ها"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderMinus className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleExpandAll}
+              title="باز کردن همه شاخه‌ها"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+            </button>
+            <button
               onClick={() => setShowExcelModal(true)}
               title="ورود و خروج اکسل دسترسی‌ها"
               className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition-colors"
             >
-              <FileSpreadsheet className="w-4 h-4" />
+              <FileSpreadsheet className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onTreeChange}
               title="تازه‌سازی ساختار درختی"
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
