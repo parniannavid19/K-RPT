@@ -177,9 +177,13 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
     return list;
   }, [nodes]);
 
+  // نرمال‌سازی حروف عربی (ي و ك) به فارسی جهت جستجوی بدون خطا
+  const normalizeFa = (str: string) =>
+    str.replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/ى/g, 'ی').toLowerCase();
+
   // فیلتر هوشمند بر اساس جستجو و وضعیت
   const filterNode = (node: PermissionTreeNode): boolean => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = normalizeFa(searchTerm.trim());
 
     // بررسی انطباق دسترسی‌ها
     const matchesPermission = (p: PermissionItem) => {
@@ -194,17 +198,17 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
 
       if (!term) return true;
       return (
-        p.persianName.toLowerCase().includes(term) ||
+        normalizeFa(p.persianName).includes(term) ||
         (p.englishName && p.englishName.toLowerCase().includes(term)) ||
         p.resourceNumber.toLowerCase().includes(term) ||
-        (p.description && p.description.toLowerCase().includes(term))
+        (p.description && normalizeFa(p.description).includes(term))
       );
     };
 
     const hasMatchingPerm = node.permissions.some(matchesPermission);
     const titleMatches =
       !term ||
-      node.title.toLowerCase().includes(term) ||
+      normalizeFa(node.title).includes(term) ||
       (node.resourceCode ? node.resourceCode.toLowerCase().includes(term) : false);
 
     const hasMatchingChild = node.children.some((child) => filterNode(child));
@@ -214,7 +218,7 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
 
   // فیلتر کردن دسترسی‌های یک گره
   const getFilteredPermissions = (perms: PermissionItem[]): PermissionItem[] => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = normalizeFa(searchTerm.trim());
     return perms.filter((p) => {
       let statusMatches = true;
       if (statusFilter === 'locked') {
@@ -227,10 +231,10 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
 
       if (!term) return true;
       return (
-        p.persianName.toLowerCase().includes(term) ||
+        normalizeFa(p.persianName).includes(term) ||
         (p.englishName && p.englishName.toLowerCase().includes(term)) ||
         p.resourceNumber.toLowerCase().includes(term) ||
-        (p.description && p.description.toLowerCase().includes(term))
+        (p.description && normalizeFa(p.description).includes(term))
       );
     });
   };

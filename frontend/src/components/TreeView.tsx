@@ -237,18 +237,22 @@ export const TreeView: React.FC<TreeViewProps> = ({
     setOpenNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
+  // نرمال‌سازی حروف عربی (ي و ك) به فارسی جهت جستجوی بدون خطا
+  const normalizeFa = (str: string) =>
+    str.replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/ى/g, 'ی').toLowerCase();
+
   const filterTree = (list: TreeNode[], term: string, sFilter: StatusFilterType): TreeNode[] => {
     const hasTerm = Boolean(term.trim());
     const hasStatus = sFilter !== null;
 
     if (!hasTerm && !hasStatus) return list;
 
-    const lowerTerm = term.toLowerCase().trim();
+    const lowerTerm = normalizeFa(term.trim());
 
     return list
       .map((node) => {
         const textMatches = !hasTerm ||
-          node.title.toLowerCase().includes(lowerTerm) ||
+          normalizeFa(node.title).includes(lowerTerm) ||
           (Boolean(node.reportCode) && node.reportCode!.toLowerCase().includes(lowerTerm));
 
         let statusMatches = true;
