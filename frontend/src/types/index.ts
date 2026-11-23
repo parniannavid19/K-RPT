@@ -248,3 +248,82 @@ export interface MultiReportDiffResponse {
   fieldDiffs: MultiReportFieldDiff[];
   parameterDiffs: MultiReportParamDiff[];
 }
+
+// ==========================================
+// انواع داده‌های مربوط به دامنه دسترسی‌ها (Permissions Domain)
+// ==========================================
+
+export type SystemDomain = 'reports' | 'permissions' | 'configs';
+
+export interface PermissionTreeNode {
+  nodeId: number;
+  parentNodeId: number | null;
+  title: string;
+  resourceCode?: string;
+  sortOrder: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  totalPermissionsCount: number;
+  verifiedCount: number;
+  underReviewCount: number;
+  pendingCount: number;
+  lockedCount: number;
+  children: PermissionTreeNode[];
+  permissions: PermissionItem[];
+}
+
+export interface PermissionItem {
+  permissionId: number;
+  nodeId: number;
+  nodeTitle?: string;
+  nodeResourceCode?: string;
+  persianName: string;
+  englishName?: string;
+  resourceNumber: string;
+  description?: string;
+  status: ReportStatus; // 1: Pending (در انتظار), 2: InProgress (قابل بررسی), 3: Verified (تایید شده)
+  verifiedByUserId?: number;
+  verifiedByUserName?: string;
+  verifiedAt?: string;
+  isLocked: boolean;
+  lockedByUserId?: number;
+  lockedByUserName?: string;
+  lockedAt?: string;
+  lockSessionId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePermissionTreeNodeDto {
+  parentNodeId?: number | null;
+  title: string;
+  resourceCode?: string;
+  sortOrder?: number;
+  description?: string;
+}
+
+export interface UpdatePermissionTreeNodeDto {
+  parentNodeId?: number | null;
+  title: string;
+  resourceCode?: string;
+  sortOrder?: number;
+  description?: string;
+}
+
+export interface CreatePermissionItemDto {
+  nodeId: number;
+  persianName: string;
+  englishName?: string;
+  resourceNumber: string;
+  description?: string;
+}
+
+export interface UpdatePermissionItemDto {
+  persianName: string;
+  englishName?: string;
+  resourceNumber: string;
+  description?: string;
+  nodeId?: number;
+}
+

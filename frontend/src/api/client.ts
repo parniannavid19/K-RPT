@@ -1,5 +1,24 @@
 import axios from 'axios';
-import type { CreateUserDto, DiffResponse, FieldBankItem, MultiReportDiffResponse, ParameterBankItem, ReportDetail, SearchResultItem, Tag, TreeNode, UpdateUserDto, User, UserDto } from '../types';
+import type {
+  CreatePermissionItemDto,
+  CreatePermissionTreeNodeDto,
+  CreateUserDto,
+  DiffResponse,
+  FieldBankItem,
+  MultiReportDiffResponse,
+  ParameterBankItem,
+  PermissionItem,
+  PermissionTreeNode,
+  ReportDetail,
+  SearchResultItem,
+  Tag,
+  TreeNode,
+  UpdatePermissionItemDto,
+  UpdatePermissionTreeNodeDto,
+  UpdateUserDto,
+  User,
+  UserDto,
+} from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -240,3 +259,79 @@ export const systemApi = {
     return res.data;
   },
 };
+
+export const permissionTreeApi = {
+  getTree: async (): Promise<PermissionTreeNode[]> => {
+    const res = await api.get<PermissionTreeNode[]>('/permissiontree');
+    return res.data;
+  },
+  getNextResourceCode: async (parentNodeId?: number | null): Promise<string> => {
+    const res = await api.get<{ nextCode: string }>('/permissiontree/next-resource-code', {
+      params: { parentNodeId },
+    });
+    return res.data.nextCode;
+  },
+  createNode: async (data: CreatePermissionTreeNodeDto): Promise<PermissionTreeNode> => {
+    const res = await api.post<PermissionTreeNode>('/permissiontree', data);
+    return res.data;
+  },
+  updateNode: async (id: number, data: UpdatePermissionTreeNodeDto): Promise<void> => {
+    await api.put(`/permissiontree/${id}`, data);
+  },
+  deleteNode: async (id: number): Promise<void> => {
+    await api.delete(`/permissiontree/${id}`);
+  },
+  moveNode: async (id: number, targetParentId?: number | null): Promise<void> => {
+    await api.post(`/permissiontree/${id}/move`, null, {
+      params: { targetParentId },
+    });
+  },
+};
+
+export const permissionsApi = {
+  getByNodeId: async (nodeId: number): Promise<PermissionItem[]> => {
+    const res = await api.get<PermissionItem[]>(`/permissions/by-node/${nodeId}`);
+    return res.data;
+  },
+  getById: async (id: number): Promise<PermissionItem> => {
+    const res = await api.get<PermissionItem>(`/permissions/${id}`);
+    return res.data;
+  },
+  getNextCode: async (): Promise<string> => {
+    const res = await api.get<{ nextCode: string }>('/permissions/next-code');
+    return res.data.nextCode;
+  },
+  create: async (data: CreatePermissionItemDto): Promise<PermissionItem> => {
+    const res = await api.post<PermissionItem>('/permissions', data);
+    return res.data;
+  },
+  update: async (id: number, data: UpdatePermissionItemDto): Promise<void> => {
+    await api.put(`/permissions/${id}`, data);
+  },
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/permissions/${id}`);
+  },
+  move: async (id: number, targetNodeId: number): Promise<void> => {
+    await api.post(`/permissions/${id}/move`, null, {
+      params: { targetNodeId },
+    });
+  },
+  lock: async (id: number): Promise<{ success: boolean; sessionId: string; message: string }> => {
+    const res = await api.post(`/permissions/${id}/lock`);
+    return res.data;
+  },
+  unlock: async (id: number, sessionId?: string, force = false): Promise<void> => {
+    await api.post(`/permissions/${id}/unlock`, null, {
+      params: { sessionId, force },
+    });
+  },
+  heartbeat: async (id: number, sessionId: string): Promise<void> => {
+    await api.post(`/permissions/${id}/heartbeat`, null, {
+      params: { sessionId },
+    });
+  },
+  verify: async (id: number): Promise<void> => {
+    await api.post(`/permissions/${id}/verify`);
+  },
+};
+

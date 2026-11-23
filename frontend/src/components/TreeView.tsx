@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Clock,
+  Copy,
   Edit3,
   FilePlus,
   FileText,
@@ -22,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { treeApi } from '../api/client';
+import { useToast } from './Toast';
 
 // تابع هوشمند محاسبه کد یکتای بعدی (یک واحد بیشتر از آخرین کد ثبت‌شده در سیستم)
 export const computeNextReportCode = (nodesList: TreeNode[]): string => {
@@ -98,6 +100,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
   currentUser,
   onTreeChange,
 }) => {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   type StatusFilterType = 3 | 2 | 1 | 'locked' | null;
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>(null);
@@ -497,9 +500,18 @@ export const TreeView: React.FC<TreeViewProps> = ({
                   </span>
                 )}
                 {node.reportCode && (
-                  <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(node.reportCode!);
+                      showToast(`کد گزارش «${node.reportCode}» در کلیپ‌بورد کپی شد.`, 'info');
+                    }}
+                    title={`کپی کد گزارش: ${node.reportCode}`}
+                    className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 border border-slate-200/90 px-1.5 py-0.2 rounded shrink-0 transition-colors cursor-pointer"
+                  >
                     {node.reportCode}
-                  </span>
+                  </button>
                 )}
               </div>
             )}
@@ -515,6 +527,18 @@ export const TreeView: React.FC<TreeViewProps> = ({
           </div>
 
           <div className="flex items-center gap-1 shrink-0 mr-1 mt-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(node.title);
+                showToast(`نام «${node.title}» در کلیپ‌بورد کپی شد.`, 'info');
+              }}
+              title="کپی نام فارسی"
+              className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-200/60 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
             {canManageTree && (
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button

@@ -637,9 +637,20 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
-              {report.reportCode}
-            </span>
+            <div className="flex items-center gap-1.5 font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
+              <span>{report.reportCode}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(report.reportCode);
+                  showToast('کد گزارش در کلیپ‌بورد کپی شد.', 'info');
+                }}
+                title="کپی کد گزارش"
+                className="text-slate-400 hover:text-blue-600 p-0.5 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {report.status === 3 ? (
               <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
@@ -664,7 +675,20 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
               className="text-lg font-bold text-slate-900 border border-blue-300 rounded-xl px-3 py-1.5 w-full focus:ring-2 focus:ring-blue-500"
             />
           ) : (
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{report.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">{report.title}</h1>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(report.title);
+                  showToast('عنوان گزارش در کلیپ‌بورد کپی شد.', 'info');
+                }}
+                title="کپی عنوان گزارش"
+                className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
           {report.verifiedByUserName && (

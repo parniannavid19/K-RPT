@@ -13,4 +13,14 @@ public class ReportLockHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"report-{reportId}");
     }
+
+    public async Task JoinPermission(int permissionId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"permission-{permissionId}");
+    }
+
+    public async Task LeavePermission(int permissionId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"permission-{permissionId}");
+    }
 }

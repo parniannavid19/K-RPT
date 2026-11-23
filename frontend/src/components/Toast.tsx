@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastItem {
   id: string;
@@ -44,12 +44,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-900'
                 : toast.type === 'error'
                 ? 'bg-rose-50/95 border-rose-200 text-rose-900'
+                : toast.type === 'warning'
+                ? 'bg-amber-50/95 border-amber-200 text-amber-900'
                 : 'bg-slate-900/95 border-slate-800 text-white'
             }`}
           >
             <div className="shrink-0 mt-0.5">
               {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
               {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600" />}
+              {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600" />}
               {toast.type === 'info' && <Info className="w-5 h-5 text-blue-400" />}
             </div>
 

@@ -277,3 +277,70 @@ public class AuditLog
     public string? ChangeDetails { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("PermissionTreeNodes")]
+public class PermissionTreeNode
+{
+    [Key]
+    public int NodeId { get; set; }
+    
+    public int? ParentNodeId { get; set; }
+    [ForeignKey(nameof(ParentNodeId))]
+    public PermissionTreeNode? ParentNode { get; set; }
+    
+    public ICollection<PermissionTreeNode> Children { get; set; } = new List<PermissionTreeNode>();
+    
+    [Required, MaxLength(200)]
+    public string Title { get; set; } = string.Empty;
+    
+    [MaxLength(100)]
+    public string? ResourceCode { get; set; }
+    
+    public int SortOrder { get; set; }
+    
+    public string? Description { get; set; }
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<PermissionItem> Permissions { get; set; } = new List<PermissionItem>();
+}
+
+[Table("Permissions")]
+public class PermissionItem
+{
+    [Key]
+    public int PermissionId { get; set; }
+    
+    public int NodeId { get; set; }
+    [ForeignKey(nameof(NodeId))]
+    public PermissionTreeNode? Node { get; set; }
+    
+    [Required, MaxLength(250)]
+    public string PersianName { get; set; } = string.Empty;
+    
+    [MaxLength(250)]
+    public string? EnglishName { get; set; }
+    
+    [Required, MaxLength(100)]
+    public string ResourceNumber { get; set; } = string.Empty;
+    
+    public string? Description { get; set; }
+    
+    public ReportStatus Status { get; set; } = ReportStatus.Pending;
+    
+    public int? VerifiedByUserId { get; set; }
+    [ForeignKey(nameof(VerifiedByUserId))]
+    public User? VerifiedByUser { get; set; }
+    public DateTime? VerifiedAt { get; set; }
+    
+    public int? LockedByUserId { get; set; }
+    [ForeignKey(nameof(LockedByUserId))]
+    public User? LockedByUser { get; set; }
+    public DateTime? LockedAt { get; set; }
+    public DateTime? LockHeartbeatAt { get; set; }
+    public Guid? LockSessionId { get; set; }
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

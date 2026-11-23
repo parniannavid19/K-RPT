@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<ReportTag> ReportTags => Set<ReportTag>();
     public DbSet<ReportRelation> ReportRelations => Set<ReportRelation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PermissionTreeNode> PermissionTreeNodes => Set<PermissionTreeNode>();
+    public DbSet<PermissionItem> Permissions => Set<PermissionItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +80,20 @@ public class AppDbContext : DbContext
             .HasOne(r => r.Node)
             .WithOne(n => n.Report)
             .HasForeignKey<Report>(r => r.NodeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Permission tree node recursive relationship
+        modelBuilder.Entity<PermissionTreeNode>()
+            .HasOne(n => n.ParentNode)
+            .WithMany(n => n.Children)
+            .HasForeignKey(n => n.ParentNodeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // One-to-many between PermissionTreeNode and PermissionItem
+        modelBuilder.Entity<PermissionItem>()
+            .HasOne(p => p.Node)
+            .WithMany(n => n.Permissions)
+            .HasForeignKey(p => p.NodeId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -17,6 +17,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ۲. تزریق وابستگی سرویس‌ها
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IReportLockService, ReportLockService>();
+builder.Services.AddScoped<IPermissionLockService, PermissionLockService>();
 
 // ۳. پشتیبانی از SignalR برای قفل‌گذاری هم‌زمان
 builder.Services.AddSignalR();
