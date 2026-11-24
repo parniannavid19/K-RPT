@@ -253,7 +253,40 @@ export interface MultiReportDiffResponse {
 // انواع داده‌های مربوط به دامنه دسترسی‌ها (Permissions Domain)
 // ==========================================
 
-export type SystemDomain = 'reports' | 'permissions' | 'configs';
+export type SystemDomain = 'dashboard' | 'reports' | 'permissions' | 'configs';
+
+export interface DashboardStats {
+  reports: {
+    total: number;
+    verified: number;
+    underReview: number;
+    pending: number;
+    locked: number;
+    totalNodes: number;
+  };
+  permissions: {
+    total: number;
+    verified: number;
+    underReview: number;
+    pending: number;
+    locked: number;
+    totalNodes: number;
+  };
+  configs: {
+    total: number;
+    plannedModulesCount: number;
+    status: string;
+    description: string;
+  };
+  summary: {
+    totalEntities: number;
+    totalVerified: number;
+    totalUnderReview: number;
+    totalPending: number;
+    totalLocked: number;
+    verificationRate: number;
+  };
+}
 
 export interface PermissionTreeNode {
   nodeId: number;

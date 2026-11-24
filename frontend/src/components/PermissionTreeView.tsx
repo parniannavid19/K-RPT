@@ -141,17 +141,8 @@ export const PermissionTreeView: React.FC<PermissionTreeViewProps> = ({
   const [permResourceNumber, setPermResourceNumber] = useState('');
   const [permDescription, setPermDescription] = useState('');
 
-  // باز کردن خودکار گره‌های ریشه در اولین بار
-  React.useEffect(() => {
-    if (nodes.length > 0 && expandedNodes.size === 0) {
-      const initial = new Set<number>();
-      for (const n of nodes) {
-        initial.add(n.nodeId);
-      }
-      setExpandedNodes(initial);
-    }
-  }, [nodes]);
-
+  // وضعیت پیش‌فرض: تمام شاخه‌ها بسته هستند (طبق خواسته کاربر)
+  // به صورت پیش‌فرض هیچ گره‌ای در بازگشایی اولیه باز نمی‌شود
   const toggleExpand = (nodeId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setExpandedNodes((prev) => {

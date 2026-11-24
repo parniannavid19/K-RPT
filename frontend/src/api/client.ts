@@ -3,6 +3,7 @@ import type {
   CreatePermissionItemDto,
   CreatePermissionTreeNodeDto,
   CreateUserDto,
+  DashboardStats,
   DiffResponse,
   FieldBankItem,
   MultiReportDiffResponse,
@@ -334,4 +335,12 @@ export const permissionsApi = {
     await api.post(`/permissions/${id}/verify`);
   },
 };
+
+export const dashboardApi = {
+  getStats: async (): Promise<DashboardStats> => {
+    const res = await api.get<DashboardStats>('/dashboard/stats');
+    return res.data;
+  },
+};
+
 

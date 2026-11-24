@@ -107,7 +107,8 @@ export const TreeView: React.FC<TreeViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   type StatusFilterType = 3 | 2 | 1 | 'locked' | null;
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>(null);
-  const [openNodes, setOpenNodes] = useState<Record<number, boolean>>({ 3: true });
+  // وضعیت پیش‌فرض: تمام شاخه‌ها بسته هستند
+  const [openNodes, setOpenNodes] = useState<Record<number, boolean>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [itemType, setItemType] = useState<1 | 2>(1); // 1: ماژول, 2: گزارش
   const [parentId, setParentId] = useState<number | null>(null);

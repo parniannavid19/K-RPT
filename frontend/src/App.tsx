@@ -8,6 +8,7 @@ import { FieldBankModal } from './components/FieldBankModal';
 import { AdminSettingsModal } from './components/AdminSettingsModal';
 import { PermissionTreeView } from './components/PermissionTreeView';
 import { PermissionDetailView } from './components/PermissionDetailView';
+import { StatusDashboard } from './components/StatusDashboard';
 import { ToastProvider, useToast } from './components/Toast';
 import type {
   PermissionItem,
@@ -30,8 +31,8 @@ function MainApp() {
   const { showToast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // بخش فعال سامانه: گزارش‌ها (reports) | دسترسی‌ها (permissions) | کانفیگ‌ها (configs)
-  const [activeDomain, setActiveDomain] = useState<SystemDomain>('reports');
+  // بخش فعال سامانه: داشبورد وضعیت (dashboard) | گزارش‌ها (reports) | دسترسی‌ها (permissions) | کانفیگ‌ها (configs)
+  const [activeDomain, setActiveDomain] = useState<SystemDomain>('dashboard');
 
   // استیت‌های دامنه گزارش‌ها
   const [activeTab, setActiveTab] = useState<'detail' | 'search' | 'diff'>('detail');
@@ -311,7 +312,14 @@ function MainApp() {
 
       {/* بدنه اصلی برنامه بر اساس دامنه انتخاب‌شده */}
       <div className="flex-1 flex overflow-hidden">
-        {activeDomain === 'reports' ? (
+        {activeDomain === 'dashboard' ? (
+          <StatusDashboard
+            onNavigateDomain={(domain) => setActiveDomain(domain)}
+            currentUser={currentUser}
+            onOpenFieldBank={() => setIsFieldBankOpen(true)}
+            onOpenAdminSettings={() => setIsAdminSettingsOpen(true)}
+          />
+        ) : activeDomain === 'reports' ? (
           <>
             {/* درخت ماژول‌ها و گزارش‌ها */}
             <TreeView

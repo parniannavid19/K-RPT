@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SystemDomain, User } from '../types';
-import { BarChart3, Database, LogIn, LogOut, Settings, Shield, ShieldCheck, Sliders } from 'lucide-react';
+import { BarChart3, Database, LayoutDashboard, LogIn, LogOut, Settings, Shield, ShieldCheck, Sliders } from 'lucide-react';
 import { authApi } from '../api/client';
 import { APP_VERSION_LABEL } from '../config/version';
 
@@ -80,8 +80,20 @@ export const Header: React.FC<HeaderProps> = ({
             {/* سوئیچر بخش‌های اصلی سامانه */}
             <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/90 shadow-2xs shrink-0">
               <button
+                onClick={() => setActiveDomain('dashboard')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeDomain === 'dashboard'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>داشبورد وضعیت</span>
+              </button>
+
+              <button
                 onClick={() => setActiveDomain('reports')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeDomain === 'reports'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -93,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => setActiveDomain('permissions')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeDomain === 'permissions'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
