@@ -30,9 +30,9 @@ public class PermissionLockService : IPermissionLockService
         if (permission == null)
             return (false, "دسترسی مورد نظر یافت نشد.", null);
 
+        var lastActiveTime = permission.LockHeartbeatAt ?? permission.LockedAt;
         var isExpired = permission.LockedByUserId.HasValue &&
-                        permission.LockHeartbeatAt.HasValue &&
-                        permission.LockHeartbeatAt.Value.AddMinutes(30) < DateTime.UtcNow;
+                        (!lastActiveTime.HasValue || lastActiveTime.Value.AddMinutes(30) < DateTime.UtcNow);
 
         if (permission.LockedByUserId.HasValue && !isExpired && permission.LockedByUserId != userId)
         {

@@ -270,10 +270,15 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       showToast('گزارش با موفقیت برای شما قفل شد و در وضعیت ویرایش قرار گرفت.', 'success');
       onRefresh();
     } catch (err: any) {
-      const msg = err.response?.data?.message || 
+      const serverMsg = err.response?.data?.message || (typeof err.response?.data === 'string' ? err.response.data : null);
+      const msg = serverMsg ||
         (err.response?.status === 409
           ? `این گزارش توسط "${report.lockedByUserName || 'کاربر دیگر'}" در حال ویرایش است`
-          : 'خطا در فعال‌سازی ویرایش و تخصیص قفل گزارش');
+          : err.response?.status === 401
+          ? 'نشست کاربری شما منقضی شده است. لطفاً مجدداً وارد سامانه شوید.'
+          : !err.response || err.message === 'Network Error'
+          ? 'ارتباط با سرور برقرار نشد؛ لطفاً از وضعیت سرویس بک‌اند مطمئن شوید.'
+          : `خطا در فعال‌سازی ویرایش و تخصیص قفل گزارش (${err.message || 'خطای سرور'})`);
       showToast(msg, 'error');
     } finally {
       setActionLoading(false);

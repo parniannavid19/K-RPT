@@ -30,10 +30,10 @@ public class ReportLockService : IReportLockService
         if (report == null)
             return (false, "گزارش مورد نظر یافت نشد.", null);
 
-        // بررسی اینکه آیا قفل منقضی شده است (مثلا ۳۰ دقیقه عدم دریافت Heartbeat)
+        // بررسی اینکه آیا قفل منقضی شده است (مثلا ۳۰ دقیقه عدم دریافت Heartbeat یا قفل‌های متروکه)
+        var lastActiveTime = report.LockHeartbeatAt ?? report.LockedAt;
         var isExpired = report.LockedByUserId.HasValue && 
-                        report.LockHeartbeatAt.HasValue && 
-                        report.LockHeartbeatAt.Value.AddMinutes(30) < DateTime.UtcNow;
+                        (!lastActiveTime.HasValue || lastActiveTime.Value.AddMinutes(30) < DateTime.UtcNow);
 
         if (report.LockedByUserId.HasValue && !isExpired && report.LockedByUserId != userId)
         {

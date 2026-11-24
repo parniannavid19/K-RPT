@@ -193,9 +193,17 @@ export const PermissionDetailView: React.FC<PermissionDetailViewProps> = ({
         showToast('قفل دسترسی با موفقیت تخصیص یافت و حالت ویرایش فعال شد.', 'info');
       }
     } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const serverMsg = axiosErr.response?.data?.message;
       const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        `این دسترسی هم‌اکنون توسط «${permission.lockedByUserName || 'کاربر دیگر'}» در حال ویرایش است.`;
+        serverMsg ||
+        (axiosErr.response?.status === 409
+          ? `این دسترسی هم‌اکنون توسط «${permission.lockedByUserName || 'کاربر دیگر'}» در حال ویرایش است.`
+          : axiosErr.response?.status === 401
+          ? 'نشست کاربری شما منقضی شده است. لطفاً مجدداً وارد سامانه شوید.'
+          : !axiosErr.response || axiosErr.message === 'Network Error'
+          ? 'ارتباط با سرور برقرار نشد؛ لطفاً از وضعیت سرویس بک‌اند مطمئن شوید.'
+          : `خطا در فعال‌سازی ویرایش دسترسی (${axiosErr.message || 'خطای سرور'})`);
       showToast(errorMsg, 'error');
     }
   };
