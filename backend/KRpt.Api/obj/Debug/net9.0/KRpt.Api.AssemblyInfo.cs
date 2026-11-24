@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KRpt.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9492de2c51911e7fcd51dfd612c59b4e6d35d87c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+de63492b49eb87f8a3a9dc78f8d955e1b4fbb848")]
 [assembly: System.Reflection.AssemblyProductAttribute("KRpt.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KRpt.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
